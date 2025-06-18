@@ -49,7 +49,8 @@ func (s *Server) Start(ctx context.Context) error {
 					return nil
 				}
 				log.Printf("Error handling request: %v", err)
-			}
+				if err == io.EOF {
+					log.Println("EOF received, stopping")	    
 		}
 	}
 }
