@@ -16,11 +16,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o marketplace-mcp-server .
+# Build the server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o marketplace-mcp-server ./cmd/mcp-server
 
-# Final stage
-FROM alpine:latest
+# Build the proxy
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o marketplace-mcp-proxy ./cmd/mcp-proxy
+
+# Separate targets for stdio vs http transport implementations
+FROM alpine:latest AS stdio
 
 # Install ca-certificates for HTTPS requests
 RUN apk --no-cache add ca-certificates
@@ -44,4 +47,32 @@ USER mcp
 EXPOSE 8765
 
 # Run the application
-ENTRYPOINT ["./marketplace-mcp-server"] 
+ENTRYPOINT ["./marketplace-mcp-server"]
+
+FROM alpine:latest AS http
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
+
+# Create non-root user
+RUN adduser -D -s /bin/sh mcp
+
+# Set working directory
+WORKDIR /home/mcp
+
+# Copy the binary from builder stage
+COPY --from=builder /app/marketplace-mcp-server ./bin/
+COPY --from=builder /app/marketplace-mcp-proxy .
+
+# Change ownership to mcp user
+RUN chown mcp:mcp ./bin/marketplace-mcp-server
+RUN chown mcp:mcp marketplace-mcp-proxy
+
+# Switch to non-root user
+USER mcp
+
+# Expose port (if needed for OAuth callback)
+EXPOSE 8765
+
+# Run the application
+ENTRYPOINT ["./marketplace-mcp-proxy"] 

@@ -24,16 +24,33 @@ docker pull xpkg.upbound.io/upbound/marketplace-mcp-server:latest
 
 ### Building from Source
 
+Standalone mode (stdio):
+
 ```bash
 git clone https://github.com/upbound/marketplace-mcp-server.git
 cd marketplace-mcp-server
-go build -o marketplace-mcp-server .
+make build-server-local
+```
+
+With HTTP proxy:
+```bash
+git clone https://github.com/upbound/marketplace-mcp-server.git
+cd marketplace-mcp-server
+make build-proxy-local
 ```
 
 ### Building Docker Image
 
+Standalone mode (stdio):
+
 ```bash
-docker build -t marketplace-mcp-server .
+make docker-build-stdio
+```
+
+With HTTP proxy:
+
+```bash
+make docker-build-http
 ```
 
 ## Usage with AI Agents
@@ -265,8 +282,19 @@ Browse and manage organization repositories:
 - Docker (for containerization)
 
 ### Running Locally
+
+Docker is recommended for portability.
+
+If you built for standalone mode (stdio):
+
 ```bash
-go run main.go
+make docker-run-local
+```
+
+If you built for HTTP:
+
+```bash
+make docker-run-proxy
 ```
 
 ### Testing
@@ -274,10 +302,6 @@ go run main.go
 go test ./...
 ```
 
-### Building
-```bash
-go build -o marketplace-mcp-server .
-```
 
 ## Docker Registry
 
@@ -287,10 +311,6 @@ xpkg.upbound.io/upbound/marketplace-mcp-server:latest
 ```
 
 ### Pushing to Registry
-
-```bash
-# Build the image
-docker build -t marketplace-mcp-server .
 
 # Tag for registry
 docker tag marketplace-mcp-server xpkg.upbound.io/upbound/marketplace-mcp-server:latest
