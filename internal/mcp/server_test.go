@@ -22,11 +22,7 @@ func TestNewServer(t *testing.T) {
 		t.Error("AuthManager should not be nil")
 	}
 
-	if server.reader == nil {
-		t.Error("Reader should not be nil")
-	}
-
-	if server.writer == nil {
-		t.Error("Writer should not be nil")
+	if server.mcpServer == nil {
+		t.Error("MCP server should not be nil")
 	}
 }

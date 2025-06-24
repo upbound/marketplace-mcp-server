@@ -11,8 +11,8 @@ func TestNewClient(t *testing.T) {
 		t.Fatal("NewClient() returned nil")
 	}
 
-	if client.BaseURL != DefaultBaseURL {
-		t.Errorf("Expected BaseURL to be %s, got %s", DefaultBaseURL, client.BaseURL)
+	if client.BaseURL != "" {
+		t.Errorf("Expected BaseURL to be empty initially, got %s", client.BaseURL)
 	}
 
 	if client.HTTPClient == nil {

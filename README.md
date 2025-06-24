@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server that provides AI agents with access to the Upbound Marketplace API. This server enables agents to search, discover, and manage marketplace packages and repositories, with a focus on helping users leverage marketplace resources for Crossplane compositions and package management.
 
+Built using the [mcp-go](https://github.com/mark3labs/mcp-go) framework for robust MCP protocol compliance and performance.
+
 ## Features
 
 - **Package Search**: Search for packages across the Upbound Marketplace with advanced filtering
@@ -16,43 +18,22 @@ A Model Context Protocol (MCP) server that provides AI agents with access to the
 
 ### Using Docker (Recommended)
 
-Pull the pre-built image from the Upbound registry:
+Build the Docker image locally:
 
 ```bash
-docker pull xpkg.upbound.io/upbound/marketplace-mcp-server:latest
+git clone https://github.com/upbound/marketplace-mcp-server.git
+cd marketplace-mcp-server
+docker build --target stdio -t marketplace-mcp-server:latest .
 ```
 
 **Note**: You must have the UP CLI installed and authenticated for the server to access marketplace resources. Run `up login` before using the MCP server.
 
 ### Building from Source
 
-Standalone mode (stdio):
-
 ```bash
 git clone https://github.com/upbound/marketplace-mcp-server.git
 cd marketplace-mcp-server
-make build-server-local
-```
-
-With HTTP proxy:
-```bash
-git clone https://github.com/upbound/marketplace-mcp-server.git
-cd marketplace-mcp-server
-make build-proxy-local
-```
-
-### Building Docker Image
-
-Standalone mode (stdio):
-
-```bash
-make docker-build-stdio
-```
-
-With HTTP proxy:
-
-```bash
-make docker-build-http
+go build ./cmd/mcp-server
 ```
 
 ## Usage with AI Agents
@@ -91,8 +72,40 @@ Add the following to your Claude Desktop configuration file:
 For agents that support MCP, configure them to connect to the server using stdio transport:
 
 ```bash
-./marketplace-mcp-server
+# Using the built binary
+./mcp-server
+
+# Using Docker
+docker run -i --rm -v ~/.up:/mcp/.up:ro marketplace-mcp-server:latest
 ```
+
+### HTTP API Interface
+
+The server also supports HTTP transport for integration with web applications and REST clients:
+
+```bash
+# Start HTTP server locally
+./mcp-http
+
+# Or using Docker
+docker run --rm -p 8765:8765 -v ~/.up:/mcp/.up:ro marketplace-mcp-server-http:latest
+```
+
+The HTTP server provides a JSON-RPC 2.0 API at `http://localhost:8765/mcp`. Example usage:
+
+```bash
+# List available tools
+curl -X POST http://localhost:8765/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
+
+# Search for packages
+curl -X POST http://localhost:8765/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "search_packages", "arguments": {"query": "aws", "size": 5}}}'
+```
+
+The HTTP interface operates in stateless mode, so no session initialization is required.
 
 ## Available Tools
 
@@ -297,23 +310,27 @@ No additional configuration is required if UP CLI is properly set up and authent
 ## Development
 
 ### Prerequisites
-- Go 1.21 or later
+- Go 1.23 or later (required by mcp-go framework)
 - Docker (for containerization)
 
 ### Running Locally
 
-Docker is recommended for portability.
-
-If you built for standalone mode (stdio):
-
+**Stdio Transport (for MCP clients like Cursor):**
 ```bash
-make docker-run-local
+# Run the built binary directly
+./mcp-server
+
+# Or run with Docker
+docker run -i --rm -v ~/.up:/mcp/.up:ro marketplace-mcp-server:latest
 ```
 
-If you built for HTTP:
-
+**HTTP Transport (for web applications and REST clients):**
 ```bash
-make docker-run-proxy
+# Run the HTTP server
+./mcp-http
+
+# Or run with Docker
+docker run --rm -p 8765:8765 -v ~/.up:/mcp/.up:ro marketplace-mcp-server-http:latest
 ```
 
 ### Testing
@@ -322,21 +339,21 @@ go test ./...
 ```
 
 
-## Docker Registry
+## Architecture
 
-The Docker image is available at:
-```
-xpkg.upbound.io/upbound/marketplace-mcp-server:latest
-```
+The server is built using the [mcp-go](https://github.com/mark3labs/mcp-go) framework, which provides:
+- **JSON-RPC 2.0 Compliance**: Full adherence to MCP protocol specifications
+- **Multiple Transports**: Built-in support for stdio, HTTP, and SSE transports
+- **Type Safety**: Strongly typed request/response handling
+- **Middleware Support**: Extensible architecture for authentication and logging
+- **Error Handling**: Robust error handling with proper MCP error codes
 
-### Pushing to Registry
+### Key Components
 
-# Tag for registry
-docker tag marketplace-mcp-server xpkg.upbound.io/upbound/marketplace-mcp-server:latest
-
-# Push to registry
-docker push xpkg.upbound.io/upbound/marketplace-mcp-server:latest
-```
+- **Server**: Main MCP server using mcp-go framework
+- **Handlers**: Tool handlers for marketplace operations
+- **Auth Manager**: UP CLI authentication integration
+- **Marketplace Client**: HTTP client for Upbound Marketplace API
 
 ## Contributing
 
