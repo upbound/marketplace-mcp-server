@@ -286,10 +286,6 @@ Browse and manage organization repositories:
 3. Get detailed repository information
 ```
 
-## Environment Variables
-
-- `MARKETPLACE_BASE_URL`: Override the default marketplace URL (default: https://registry.upbound.io)
-
 ## Configuration
 
 The server automatically detects and loads UP CLI configuration from the following locations:
