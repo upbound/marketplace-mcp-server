@@ -27,6 +27,15 @@ func NewServer(client *marketplace.Client) *Server {
 	// Initialize auth manager
 	authManager := auth.NewManager()
 
+	// Try to load and set server URL from UP CLI profile
+	if serverURL, err := authManager.GetCurrentServerURL(); err == nil {
+		client.SetBaseURL(serverURL)
+		log.Printf("Using server URL from UP CLI profile: %s", serverURL)
+	} else {
+		log.Printf("Warning: Could not load server URL from profile: %v", err)
+		log.Printf("Using default server URL: %s", client.BaseURL)
+	}
+
 	// Try to load and set authentication token from UP CLI config
 	if token, err := authManager.GetCurrentToken(); err == nil {
 		client.SetToken(token.AccessToken)
@@ -270,7 +279,7 @@ func (s *Server) handleToolsList(req *MCPRequest) error {
 		},
 		{
 			Name:        "reload_auth",
-			Description: "Reload authentication from UP CLI configuration (useful if you switched profiles)",
+			Description: "Reload authentication and server configuration from UP CLI configuration (useful if you switched profiles)",
 			InputSchema: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},

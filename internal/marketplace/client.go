@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	DefaultBaseURL = "https://api.upbound.io"
-	UserAgent      = "marketplace-mcp-server/1.0"
+	UserAgent = "marketplace-mcp-server/1.0"
 )
 
 // Client represents a marketplace API client
@@ -25,7 +24,7 @@ type Client struct {
 // NewClient creates a new marketplace client
 func NewClient() *Client {
 	return &Client{
-		BaseURL: DefaultBaseURL,
+		BaseURL: "", // Will be set by the server from UP CLI profile
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -35,6 +34,11 @@ func NewClient() *Client {
 // SetToken sets the authentication token
 func (c *Client) SetToken(token string) {
 	c.Token = token
+}
+
+// SetBaseURL sets the base URL for the marketplace API
+func (c *Client) SetBaseURL(baseURL string) {
+	c.BaseURL = baseURL
 }
 
 // SearchPackages searches for packages using v1 or v2 API

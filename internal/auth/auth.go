@@ -3,8 +3,10 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // UPConfig represents the UP CLI configuration structure
@@ -163,6 +165,32 @@ func (m *Manager) GetDefaultProfileName() (string, error) {
 	}
 
 	return config.Upbound.Default, nil
+}
+
+// GetCurrentServerURL returns the server URL from the current profile
+func (m *Manager) GetCurrentServerURL() (string, error) {
+	profile, err := m.GetCurrentProfile()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current profile: %w", err)
+	}
+
+	if profile.Domain == "" {
+		// Default to api.upbound.io if no domain is specified
+		return "https://api.upbound.io", nil
+	}
+
+	// Parse the domain as a URL
+	u, err := url.Parse(profile.Domain)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse domain URL: %w", err)
+	}
+
+	// Add api. subdomain if not already present
+	if !strings.HasPrefix(u.Host, "api.") {
+		u.Host = "api." + u.Host
+	}
+
+	return u.String(), nil
 }
 
 // loadConfig loads the UP CLI configuration from disk

@@ -195,6 +195,13 @@ func (s *Server) handleGetRepositories(ctx context.Context, req *MCPRequest, arg
 
 // handleReloadAuth handles reloading authentication from UP CLI config
 func (s *Server) handleReloadAuth(ctx context.Context, req *MCPRequest, args map[string]interface{}) error {
+	// Reload server URL from UP CLI profile
+	serverURL, err := s.authManager.GetCurrentServerURL()
+	if err != nil {
+		return s.sendError("auth_failed", fmt.Sprintf("Failed to load server URL from UP CLI profile: %v", err), req.ID)
+	}
+	s.client.SetBaseURL(serverURL)
+
 	// Reload authentication from UP CLI config
 	token, err := s.authManager.GetCurrentToken()
 	if err != nil {
@@ -217,8 +224,8 @@ func (s *Server) handleReloadAuth(ctx context.Context, req *MCPRequest, args map
 			Content: []Content{
 				{
 					Type: "text",
-					Text: fmt.Sprintf("Authentication reloaded successfully from UP CLI profile '%s' (%s)!",
-						profile.ID, profile.Organization),
+					Text: fmt.Sprintf("Authentication and server configuration reloaded successfully!\nProfile: '%s' (%s)\nServer: %s",
+						profile.ID, profile.Organization, serverURL),
 				},
 			},
 		},
