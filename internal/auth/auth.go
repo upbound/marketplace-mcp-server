@@ -1,49 +1,29 @@
 package auth
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
-	"log"
-	"net"
-	"net/http"
-	"net/url"
-	"strconv"
-	"time"
-
-	"github.com/pkg/browser"
+	"os"
+	"path/filepath"
 )
 
-const (
-	// Upbound authentication endpoints
-	AuthDomain = "accounts.upbound.io"
-	APIDomain  = "api.upbound.io"
-
-	// Authentication paths
-	WebLoginPath     = "/login"
-	IssueEndpoint    = "/v1/issueTOTP"
-	ExchangeEndpoint = "/v1/checkTOTP"
-	TOTPDisplayPath  = "/cli/loginCode"
-	LoginResultPath  = "/cli/loginResult"
-
-	// Local server for callback
-	CallbackPath = "/"
-)
-
-// Config represents authentication configuration
-type Config struct {
-	Domain   string
-	APIHost  string
-	AuthHost string
+// UPConfig represents the UP CLI configuration structure
+type UPConfig struct {
+	Upbound struct {
+		Default  string             `json:"default"`
+		Profiles map[string]Profile `json:"profiles"`
+	} `json:"upbound"`
 }
 
-// Manager handles Upbound authentication using callback-based TOTP flow
-type Manager struct {
-	config       *Config
-	server       *http.Server
-	token        chan string
-	redirect     chan string
-	port         int
-	sessionToken string
+// Profile represents a UP CLI profile
+type Profile struct {
+	ID           string `json:"id"`
+	ProfileType  string `json:"profileType"`
+	Type         string `json:"type"`
+	Session      string `json:"session"`
+	Account      string `json:"account,omitempty"`
+	Organization string `json:"organization"`
+	Domain       string `json:"domain"`
 }
 
 // Token represents an authentication token
@@ -52,271 +32,193 @@ type Token struct {
 	TokenType   string `json:"token_type"`
 }
 
+// Manager handles UP CLI configuration reading
+type Manager struct {
+	configPath string
+}
+
 // NewManager creates a new authentication manager
 func NewManager() *Manager {
-	config := &Config{
-		Domain:   "upbound.io",
-		APIHost:  APIDomain,
-		AuthHost: AuthDomain,
+	var configPath string
+
+	// Check if config path is specified via environment variable
+	if envPath := os.Getenv("UP_CONFIG_PATH"); envPath != "" {
+		configPath = envPath
+	} else {
+		// Check for mounted config first (Docker container scenario)
+		mountedPath := "/mcp/.up/config.json"
+		if _, err := os.Stat(mountedPath); err == nil {
+			configPath = mountedPath
+		} else {
+			// Fallback to user home directory
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				// Fallback to environment variable if available
+				homeDir = os.Getenv("HOME")
+			}
+			configPath = filepath.Join(homeDir, ".up", "config.json")
+		}
 	}
 
 	return &Manager{
-		config:   config,
-		token:    make(chan string, 1),
-		redirect: make(chan string, 1),
+		configPath: configPath,
 	}
 }
 
-// Login initiates the Upbound authentication flow using callback mechanism
-func (m *Manager) Login(ctx context.Context) (*Token, error) {
-	// Start local callback server
-	if err := m.startCallbackServer(); err != nil {
-		return nil, fmt.Errorf("failed to start callback server: %w", err)
-	}
-	defer m.stopCallbackServer()
-
-	// Build authentication URL
-	authURL := m.buildAuthURL()
-
-	// Open browser to authentication URL
-	log.Printf("Opening browser for authentication: %s", authURL)
-	if err := browser.OpenURL(authURL); err != nil {
-		log.Printf("Failed to open browser automatically. Please visit: %s", authURL)
+// GetCurrentToken returns the session token from the current UP CLI profile
+func (m *Manager) GetCurrentToken() (*Token, error) {
+	config, err := m.loadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load UP CLI config: %w", err)
 	}
 
-	// Wait for callback or timeout
-	select {
-	case totpCode := <-m.token:
-		// Exchange TOTP code for session token
-		sessionToken, err := m.exchangeTOTPForSession(ctx, totpCode)
-		if err != nil {
-			return nil, fmt.Errorf("failed to exchange TOTP for session: %w", err)
-		}
-
-		m.sessionToken = sessionToken
-
-		// Send success redirect
-		resultURL := m.buildResultURL(true, "")
-		m.redirect <- resultURL
-
-		return &Token{
-			AccessToken: sessionToken,
-			TokenType:   "Session",
-		}, nil
-
-	case <-ctx.Done():
-		return nil, fmt.Errorf("authentication timeout: %w", ctx.Err())
-	case <-time.After(5 * time.Minute):
-		return nil, fmt.Errorf("authentication timeout")
+	// Get the default profile name
+	defaultProfile := config.Upbound.Default
+	if defaultProfile == "" {
+		return nil, fmt.Errorf("no default profile set in UP CLI config")
 	}
-}
 
-// GetToken returns the current session token
-func (m *Manager) GetToken() *Token {
-	if m.sessionToken == "" {
-		return nil
+	// Get the profile
+	profile, exists := config.Upbound.Profiles[defaultProfile]
+	if !exists {
+		return nil, fmt.Errorf("default profile '%s' not found in UP CLI config", defaultProfile)
 	}
+
+	// Check if session token exists
+	if profile.Session == "" {
+		return nil, fmt.Errorf("no session token found in profile '%s'. Please run 'up login' to authenticate", defaultProfile)
+	}
+
 	return &Token{
-		AccessToken: m.sessionToken,
+		AccessToken: profile.Session,
 		TokenType:   "Session",
-	}
+	}, nil
 }
 
-// RefreshToken is not applicable for session-based auth
-func (m *Manager) RefreshToken(ctx context.Context) (*Token, error) {
-	return nil, fmt.Errorf("session token refresh not supported, please re-authenticate")
-}
-
-// buildAuthURL constructs the authentication URL following UP CLI pattern
-func (m *Manager) buildAuthURL() string {
-	// Build callback URL
-	callbackURL := fmt.Sprintf("http://localhost:%d%s", m.port, CallbackPath)
-
-	// Build TOTP issue endpoint
-	issueURL := url.URL{
-		Scheme: "https",
-		Host:   m.config.APIHost,
-		Path:   IssueEndpoint,
-	}
-	issueParams := url.Values{
-		"returnTo": []string{callbackURL},
-	}
-	issueURL.RawQuery = issueParams.Encode()
-
-	// Build login endpoint
-	loginURL := url.URL{
-		Scheme: "https",
-		Host:   m.config.AuthHost,
-		Path:   WebLoginPath,
-	}
-	loginParams := url.Values{
-		"returnTo": []string{issueURL.String()},
-	}
-	loginURL.RawQuery = loginParams.Encode()
-
-	return loginURL.String()
-}
-
-// buildResultURL constructs the result URL
-func (m *Manager) buildResultURL(success bool, errorMsg string) string {
-	resultURL := url.URL{
-		Scheme: "https",
-		Host:   m.config.AuthHost,
-		Path:   LoginResultPath,
-	}
-
-	if !success && errorMsg != "" {
-		params := url.Values{
-			"message": []string{errorMsg},
-		}
-		resultURL.RawQuery = params.Encode()
-	}
-
-	return resultURL.String()
-}
-
-// exchangeTOTPForSession exchanges TOTP code for session token
-func (m *Manager) exchangeTOTPForSession(ctx context.Context, totpCode string) (string, error) {
-	if totpCode == "" {
-		return "", fmt.Errorf("failed to receive TOTP code from web login")
-	}
-
-	// Build exchange URL
-	exchangeURL := url.URL{
-		Scheme: "https",
-		Host:   m.config.APIHost,
-		Path:   ExchangeEndpoint,
-	}
-	params := url.Values{
-		"totp": []string{totpCode},
-	}
-	exchangeURL.RawQuery = params.Encode()
-
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, exchangeURL.String(), nil)
+// GetTokenForProfile returns the session token for a specific profile
+func (m *Manager) GetTokenForProfile(profileName string) (*Token, error) {
+	config, err := m.loadConfig()
 	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Make request
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+		return nil, fmt.Errorf("failed to load UP CLI config: %w", err)
 	}
 
-	res, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("authentication failed with status %d", res.StatusCode)
+	// Get the profile
+	profile, exists := config.Upbound.Profiles[profileName]
+	if !exists {
+		return nil, fmt.Errorf("profile '%s' not found in UP CLI config", profileName)
 	}
 
-	// Extract session cookie
-	for _, cookie := range res.Cookies() {
-		if cookie.Name == "SID" {
-			return cookie.Value, nil
-		}
+	// Check if session token exists
+	if profile.Session == "" {
+		return nil, fmt.Errorf("no session token found in profile '%s'. Please run 'up login' to authenticate", profileName)
 	}
 
-	return "", fmt.Errorf("no session cookie found in response")
+	return &Token{
+		AccessToken: profile.Session,
+		TokenType:   "Session",
+	}, nil
 }
 
-// startCallbackServer starts the local HTTP server for callback
-func (m *Manager) startCallbackServer() error {
-	port, err := m.getAvailablePort()
+// GetCurrentProfile returns the current profile information
+func (m *Manager) GetCurrentProfile() (*Profile, error) {
+	config, err := m.loadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load UP CLI config: %w", err)
+	}
+
+	// Get the default profile name
+	defaultProfile := config.Upbound.Default
+	if defaultProfile == "" {
+		return nil, fmt.Errorf("no default profile set in UP CLI config")
+	}
+
+	// Get the profile
+	profile, exists := config.Upbound.Profiles[defaultProfile]
+	if !exists {
+		return nil, fmt.Errorf("default profile '%s' not found in UP CLI config", defaultProfile)
+	}
+
+	return &profile, nil
+}
+
+// ListProfiles returns all available profiles
+func (m *Manager) ListProfiles() (map[string]Profile, error) {
+	config, err := m.loadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load UP CLI config: %w", err)
+	}
+
+	return config.Upbound.Profiles, nil
+}
+
+// GetDefaultProfileName returns the name of the default profile
+func (m *Manager) GetDefaultProfileName() (string, error) {
+	config, err := m.loadConfig()
+	if err != nil {
+		return "", fmt.Errorf("failed to load UP CLI config: %w", err)
+	}
+
+	if config.Upbound.Default == "" {
+		return "", fmt.Errorf("no default profile set in UP CLI config")
+	}
+
+	return config.Upbound.Default, nil
+}
+
+// loadConfig loads the UP CLI configuration from disk
+func (m *Manager) loadConfig() (*UPConfig, error) {
+	// Check if config file exists
+	if _, err := os.Stat(m.configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("UP CLI config not found at %s. Please run 'up login' first", m.configPath)
+	}
+
+	// Read config file
+	data, err := os.ReadFile(m.configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read UP CLI config: %w", err)
+	}
+
+	// Parse JSON
+	var config UPConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse UP CLI config: %w", err)
+	}
+
+	return &config, nil
+}
+
+// ValidateToken checks if the current token is valid (non-empty)
+func (m *Manager) ValidateToken() error {
+	token, err := m.GetCurrentToken()
 	if err != nil {
 		return err
 	}
-	m.port = port
 
-	mux := http.NewServeMux()
-	mux.HandleFunc(CallbackPath, m.handleCallback)
-
-	m.server = &http.Server{
-		Addr:              fmt.Sprintf(":%d", m.port),
-		Handler:           mux,
-		ReadTimeout:       5 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      10 * time.Second,
+	if token.AccessToken == "" {
+		return fmt.Errorf("empty session token")
 	}
 
-	go func() {
-		if err := m.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Callback server error: %v", err)
-		}
-	}()
-
-	// Give the server a moment to start
-	time.Sleep(100 * time.Millisecond)
 	return nil
 }
 
-// stopCallbackServer stops the local HTTP server
-func (m *Manager) stopCallbackServer() {
-	if m.server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		m.server.Shutdown(ctx)
-	}
+// Legacy methods for backward compatibility - these now return errors
+// since we don't do interactive authentication anymore
+
+// Login is deprecated - use UP CLI authentication instead
+func (m *Manager) Login(ctx interface{}) (*Token, error) {
+	return nil, fmt.Errorf("interactive login not supported. Please use 'up login' to authenticate with UP CLI")
 }
 
-// handleCallback handles the callback from authentication
-func (m *Manager) handleCallback(w http.ResponseWriter, r *http.Request) {
-	// Extract TOTP code from query parameters
-	totpCode := r.URL.Query().Get("totp")
-
-	// Send the TOTP code
-	m.token <- totpCode
-
-	// Wait for redirect URL
-	redirectURL := <-m.redirect
-
-	// Redirect to result page
-	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
-}
-
-// getAvailablePort finds an available port
-func (m *Manager) getAvailablePort() (int, error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+// GetToken is deprecated - use GetCurrentToken instead
+func (m *Manager) GetToken() *Token {
+	token, err := m.GetCurrentToken()
 	if err != nil {
-		return 0, err
+		return nil
 	}
-	defer listener.Close()
-
-	_, portString, err := net.SplitHostPort(listener.Addr().String())
-	if err != nil {
-		return 0, err
-	}
-
-	return strconv.Atoi(portString)
+	return token
 }
 
-// GetAuthenticatedClient returns an HTTP client with authentication
-func (m *Manager) GetAuthenticatedClient(ctx context.Context) *http.Client {
-	return &http.Client{
-		Transport: &authenticatedTransport{
-			sessionToken: m.sessionToken,
-			transport:    http.DefaultTransport,
-		},
-	}
-}
-
-// authenticatedTransport adds session authentication to requests
-type authenticatedTransport struct {
-	sessionToken string
-	transport    http.RoundTripper
-}
-
-func (t *authenticatedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if t.sessionToken != "" {
-		// Add session cookie
-		req.AddCookie(&http.Cookie{
-			Name:  "SID",
-			Value: t.sessionToken,
-		})
-	}
-	return t.transport.RoundTrip(req)
+// RefreshToken is not applicable for session-based auth
+func (m *Manager) RefreshToken(ctx interface{}) (*Token, error) {
+	return nil, fmt.Errorf("session token refresh not supported, please run 'up login' to re-authenticate")
 }

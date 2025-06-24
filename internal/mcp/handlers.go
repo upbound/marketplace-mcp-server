@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/upbound/marketplace-mcp-server/internal/auth"
 	"github.com/upbound/marketplace-mcp-server/internal/marketplace"
 )
 
@@ -173,7 +172,7 @@ func (s *Server) handleGetRepositories(ctx context.Context, req *MCPRequest, arg
 	result, err := s.client.GetRepositories(ctx, account, params)
 	if err != nil {
 		if strings.Contains(err.Error(), "authentication required") {
-			return s.sendError("auth_required", "Authentication required for this endpoint. Use the 'authenticate' tool first.", req.ID)
+			return s.sendError("auth_required", "Authentication required for this endpoint. Please run 'up login' to authenticate with UP CLI.", req.ID)
 		}
 		return s.sendError("repositories_failed", err.Error(), req.ID)
 	}
@@ -194,19 +193,22 @@ func (s *Server) handleGetRepositories(ctx context.Context, req *MCPRequest, arg
 	return s.sendResponse(response)
 }
 
-// handleAuthenticate handles the authenticate tool call
-func (s *Server) handleAuthenticate(ctx context.Context, req *MCPRequest, args map[string]interface{}) error {
-	// Create new auth manager
-	s.authManager = auth.NewManager()
-
-	// Perform authentication
-	token, err := s.authManager.Login(ctx)
+// handleReloadAuth handles reloading authentication from UP CLI config
+func (s *Server) handleReloadAuth(ctx context.Context, req *MCPRequest, args map[string]interface{}) error {
+	// Reload authentication from UP CLI config
+	token, err := s.authManager.GetCurrentToken()
 	if err != nil {
-		return s.sendError("auth_failed", err.Error(), req.ID)
+		return s.sendError("auth_failed", fmt.Sprintf("Failed to load authentication from UP CLI: %v", err), req.ID)
 	}
 
 	// Set token in marketplace client
 	s.client.SetToken(token.AccessToken)
+
+	// Get current profile info
+	profile, err := s.authManager.GetCurrentProfile()
+	if err != nil {
+		return s.sendError("auth_failed", fmt.Sprintf("Failed to get current profile: %v", err), req.ID)
+	}
 
 	response := MCPResponse{
 		JSONRPC: "2.0",
@@ -215,7 +217,8 @@ func (s *Server) handleAuthenticate(ctx context.Context, req *MCPRequest, args m
 			Content: []Content{
 				{
 					Type: "text",
-					Text: "Authentication successful! You can now access private resources.",
+					Text: fmt.Sprintf("Authentication reloaded successfully from UP CLI profile '%s' (%s)!",
+						profile.ID, profile.Organization),
 				},
 			},
 		},

@@ -20,7 +20,7 @@ type MCPResponse struct {
 
 // MCPError represents an MCP error
 type MCPError struct {
-	Code    string      `json:"code"`
+	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }

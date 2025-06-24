@@ -27,6 +27,15 @@ func NewServer(client *marketplace.Client) *Server {
 	// Initialize auth manager
 	authManager := auth.NewManager()
 
+	// Try to load and set authentication token from UP CLI config
+	if token, err := authManager.GetCurrentToken(); err == nil {
+		client.SetToken(token.AccessToken)
+		log.Printf("Loaded authentication token from UP CLI profile")
+	} else {
+		log.Printf("Warning: Could not load authentication token: %v", err)
+		log.Printf("Some operations may require authentication. Please run 'up login' if needed.")
+	}
+
 	return &Server{
 		client:      client,
 		authManager: authManager,
@@ -69,7 +78,9 @@ func (s *Server) handleRequest(ctx context.Context) error {
 
 	var request MCPRequest
 	if err := json.Unmarshal([]byte(line), &request); err != nil {
-		return s.sendError("parse_error", "Invalid JSON", nil)
+		log.Printf("Failed to parse JSON request: %s (error: %v)", line, err)
+		// Don't send error response for unparseable requests as it causes issues with MCP clients
+		return nil
 	}
 
 	return s.processRequest(ctx, &request)
@@ -258,8 +269,8 @@ func (s *Server) handleToolsList(req *MCPRequest) error {
 			},
 		},
 		{
-			Name:        "authenticate",
-			Description: "Authenticate with Upbound using callback-based TOTP flow to access private resources",
+			Name:        "reload_auth",
+			Description: "Reload authentication from UP CLI configuration (useful if you switched profiles)",
 			InputSchema: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
@@ -294,8 +305,8 @@ func (s *Server) handleToolsCall(ctx context.Context, req *MCPRequest) error {
 		return s.handleGetPackageAssets(ctx, req, params.Arguments)
 	case "get_repositories":
 		return s.handleGetRepositories(ctx, req, params.Arguments)
-	case "authenticate":
-		return s.handleAuthenticate(ctx, req, params.Arguments)
+	case "reload_auth":
+		return s.handleReloadAuth(ctx, req, params.Arguments)
 	default:
 		return s.sendError("unknown_tool", fmt.Sprintf("Unknown tool: %s", params.Name), req.ID)
 	}
@@ -314,14 +325,53 @@ func (s *Server) sendResponse(response MCPResponse) error {
 
 // sendError sends an MCP error response
 func (s *Server) sendError(code, message string, id interface{}) error {
+	// Don't send error responses with null IDs as they violate JSON-RPC 2.0
+	if id == nil {
+		return nil
+	}
+
 	response := MCPResponse{
 		JSONRPC: "2.0",
 		ID:      id,
 		Error: &MCPError{
-			Code:    code,
+			Code:    getErrorCode(code),
 			Message: message,
 		},
 	}
 
 	return s.sendResponse(response)
+}
+
+// getErrorCode maps string error codes to numeric codes per JSON-RPC 2.0
+func getErrorCode(code string) int {
+	switch code {
+	case "parse_error":
+		return -32700
+	case "invalid_request":
+		return -32600
+	case "method_not_found":
+		return -32601
+	case "invalid_params":
+		return -32602
+	case "internal_error":
+		return -32603
+	case "unknown_tool":
+		return -32000 // Custom error
+	case "auth_required":
+		return -32001 // Custom error
+	case "auth_failed":
+		return -32002 // Custom error
+	case "search_failed":
+		return -32003 // Custom error
+	case "metadata_failed":
+		return -32004 // Custom error
+	case "assets_failed":
+		return -32005 // Custom error
+	case "repositories_failed":
+		return -32006 // Custom error
+	case "unknown_resource":
+		return -32007 // Custom error
+	default:
+		return -32603 // Internal error
+	}
 }
