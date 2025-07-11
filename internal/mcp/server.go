@@ -255,7 +255,7 @@ func (s *Server) registerTools() {
 				},
 				"composition_name": map[string]any{
 					"type":        "string",
-					"description": "The version of the package.",
+					"description": "The name of the composition.",
 				},
 			},
 			Required: []string{"account", "respository_name", "version", "resource_group", "resource_kind", "composition_name"},

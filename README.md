@@ -218,6 +218,104 @@ Reload authentication from UP CLI configuration. Useful when switching UP CLI pr
 }
 ```
 
+### 6. get_package_version_resources
+
+Get package version resources for a supplied repository name.
+
+**Parameters:**
+- `account` (string, required): Account/organization name. For example upbound.
+- `repository_name` (string, required): The name of the repository. For example provider-aws-s3.
+- `version` (string, required): The version of the package. For example v1.23.1.
+
+**Example:**
+```json
+{
+  "name": "get_package_version_resources",
+  "arguments": {
+    "account": "upbound",
+    "repository_name": "provider-aws-s3",
+    "version": "v1.23.1 
+  }
+}
+```
+
+### 7. get_package_version_composition_resources
+
+Get package version composition resources for a supplied group, kind and version and composition.
+
+**Parameters:**
+- `account` (string, required): Account/organization name. For example upbound.
+- `repository_name` (string, required): The name of the repository. For example configuration-caas.
+- `version` (string, required): The version of the package. For example v0.4.0.
+- `resource_group` (string, required): The group of the resource. For example caas.upbound.io.
+- `resource_kind` (string, required): The kind of the resource. For example XCluster.
+- `composition_name` (string, required): The kind of the resource. For example xclusters.caas.upbound.io.
+
+**Example:**
+```json
+{
+  "name": "get_package_version_composition_resources",
+  "arguments": {
+    "account": "upbound",
+    "repository_name": "configuration-caas",
+    "version": "v0.4.0",
+    "resource_group": "caas.upbound.io",
+    "resource_kind": "XCluster",
+    "composition_name": "xclusters.caas.upbound.io"
+  }
+}
+```
+
+### 8. get_package_version_groupkind_resources
+
+Get package version resources for a supplied group, kind and version.
+
+**Parameters:**
+- `account` (string, required): Account/organization name. For example upbound.
+- `repository_name` (string, required): The name of the repository. For example provider-aws-s3.
+- `version` (string, required): The version of the package. For example v1.23.1.
+- `resource_group` (string, required): The group of the resource. For example s3.aws.upbound.io.
+- `resource_kind` (string, required): The kind of the resource. For example Bucket.
+
+**Example:**
+```json
+{
+  "name": "get_package_version_groupkind_resources",
+  "arguments": {
+    "account": "upbound",
+    "repository_name": "provider-aws-s3",
+    "version": "v1.23.1",
+    "resource_group": "s3.aws.upbound.io",
+    "resource_kind": "Bucket"
+  }
+}
+```
+
+### 8. get_package_version_examples
+
+Get package version examples for a supplied group, kind and version.
+
+**Parameters:**
+- `account` (string, required): Account/organization name. For example upbound.
+- `repository_name` (string, required): The name of the repository. For example provider-aws-s3.
+- `version` (string, required): The version of the package. For example v1.23.1.
+- `resource_group` (string, required): The group of the resource. For example s3.aws.upbound.io.
+- `resource_kind` (string, required): The kind of the resource. For example Bucket.
+
+**Example:**
+```json
+{
+  "name": "get_package_version_groupkind_resources",
+  "arguments": {
+    "account": "upbound",
+    "repository_name": "provider-aws-s3",
+    "version": "v1.23.1",
+    "resource_group": "s3.aws.upbound.io",
+    "resource_kind": "Bucket"
+  }
+}
+```
+
 ## Authentication
 
 The MCP server uses UP CLI authentication for accessing marketplace resources:

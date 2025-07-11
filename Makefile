@@ -127,6 +127,10 @@ dev-setup: install-tools deps
 # Check if everything is ready for release
 check: deps vet lint test
 
+# Run a local mcp inspector
+inspector:
+	@DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -156,3 +160,4 @@ help:
 	@echo "  dev-setup          - Setup development environment"
 	@echo "  check              - Run all checks (deps, vet, lint, test)"
 	@echo "  help               - Show this help message" 
+	@echo "  inspector          - Run a local mcp inspector" 
