@@ -48,7 +48,7 @@ func (s *Server) handleSearchPackages(ctx context.Context, req mcp.CallToolReque
 	// Perform search
 	result, err := s.client.SearchPackages(ctx, params)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", err)), err
 	}
 
 	return mcp.NewToolResultText(formatSearchResults(result)), nil
@@ -59,12 +59,12 @@ func (s *Server) handleGetPackageMetadata(ctx context.Context, req mcp.CallToolR
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 
 	repository, err := req.RequireString("repository")
 	if err != nil {
-		return mcp.NewToolResultError("repository parameter is required"), nil
+		return mcp.NewToolResultError("repository parameter is required"), err
 	}
 
 	// Extract optional parameters
@@ -74,7 +74,7 @@ func (s *Server) handleGetPackageMetadata(ctx context.Context, req mcp.CallToolR
 	// Get package metadata
 	metadata, err := s.client.GetPackageMetadata(ctx, account, repository, version, useV1)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to get package metadata: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to get package metadata: %v", err)), err
 	}
 
 	return mcp.NewToolResultText(formatPackageMetadata(metadata)), nil
@@ -85,22 +85,22 @@ func (s *Server) handleGetPackageAssets(ctx context.Context, req mcp.CallToolReq
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 
 	repository, err := req.RequireString("repository")
 	if err != nil {
-		return mcp.NewToolResultError("repository parameter is required"), nil
+		return mcp.NewToolResultError("repository parameter is required"), err
 	}
 
 	version, err := req.RequireString("version")
 	if err != nil {
-		return mcp.NewToolResultError("version parameter is required"), nil
+		return mcp.NewToolResultError("version parameter is required"), err
 	}
 
 	assetType, err := req.RequireString("asset_type")
 	if err != nil {
-		return mcp.NewToolResultError("asset_type parameter is required"), nil
+		return mcp.NewToolResultError("asset_type parameter is required"), err
 	}
 
 	// Validate asset type
@@ -129,7 +129,7 @@ func (s *Server) handleGetRepositories(ctx context.Context, req mcp.CallToolRequ
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 
 	// Extract optional parameters
@@ -149,7 +149,7 @@ func (s *Server) handleGetRepositories(ctx context.Context, req mcp.CallToolRequ
 	// Get repositories
 	repos, err := s.client.GetRepositories(ctx, account, params)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), err
 	}
 
 	return mcp.NewToolResultText(formatRepositories(repos)), nil
@@ -160,21 +160,21 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResources(ctx context.
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 	repositoryName, err := req.RequireString("repository_name")
 	if err != nil {
-		return mcp.NewToolResultError("repository_name parameter is required"), nil
+		return mcp.NewToolResultError("repository_name parameter is required"), err
 	}
 	version, err := req.RequireString("version")
 	if err != nil {
-		return mcp.NewToolResultError("version parameter is required"), nil
+		return mcp.NewToolResultError("version parameter is required"), err
 	}
 
 	// Get repositories
 	repos, err := s.client.GetV1PackagesAccountRepositoryVersionResources(ctx, account, repositoryName, version)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), err
 	}
 
 	b, err := json.Marshal(repos)
@@ -190,33 +190,33 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindComp
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 	repositoryName, err := req.RequireString("repository_name")
 	if err != nil {
-		return mcp.NewToolResultError("repository_name parameter is required"), nil
+		return mcp.NewToolResultError("repository_name parameter is required"), err
 	}
 	version, err := req.RequireString("version")
 	if err != nil {
-		return mcp.NewToolResultError("version parameter is required"), nil
+		return mcp.NewToolResultError("version parameter is required"), err
 	}
 	resourceGroup, err := req.RequireString("resource_group")
 	if err != nil {
-		return mcp.NewToolResultError("resource_group parameter is required"), nil
+		return mcp.NewToolResultError("resource_group parameter is required"), err
 	}
 	resourceKind, err := req.RequireString("resource_kind")
 	if err != nil {
-		return mcp.NewToolResultError("resource_kind parameter is required"), nil
+		return mcp.NewToolResultError("resource_kind parameter is required"), err
 	}
 	compositionName, err := req.RequireString("composition_name")
 	if err != nil {
-		return mcp.NewToolResultError("composition_name parameter is required"), nil
+		return mcp.NewToolResultError("composition_name parameter is required"), err
 	}
 
 	// Get repositories
 	raw, err := s.client.GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposition(ctx, account, repositoryName, version, resourceGroup, resourceKind, compositionName)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), err
 	}
 
 	return mcp.NewToolResultText(raw), nil
@@ -227,29 +227,29 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKind(ctx
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 	repositoryName, err := req.RequireString("repository_name")
 	if err != nil {
-		return mcp.NewToolResultError("repository_name parameter is required"), nil
+		return mcp.NewToolResultError("repository_name parameter is required"), err
 	}
 	version, err := req.RequireString("version")
 	if err != nil {
-		return mcp.NewToolResultError("version parameter is required"), nil
+		return mcp.NewToolResultError("version parameter is required"), err
 	}
 	resourceGroup, err := req.RequireString("resource_group")
 	if err != nil {
-		return mcp.NewToolResultError("resource_group parameter is required"), nil
+		return mcp.NewToolResultError("resource_group parameter is required"), err
 	}
 	resourceKind, err := req.RequireString("resource_kind")
 	if err != nil {
-		return mcp.NewToolResultError("resource_kind parameter is required"), nil
+		return mcp.NewToolResultError("resource_kind parameter is required"), err
 	}
 
 	// Get repositories
 	raw, err := s.client.GetV1PackagesAccountRepositoryVersionResourcesGroupKind(ctx, account, repositoryName, version, resourceGroup, resourceKind)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), err
 	}
 
 	return mcp.NewToolResultText(raw), nil
@@ -260,29 +260,29 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindExam
 	// Extract required parameters
 	account, err := req.RequireString("account")
 	if err != nil {
-		return mcp.NewToolResultError("account parameter is required"), nil
+		return mcp.NewToolResultError("account parameter is required"), err
 	}
 	repositoryName, err := req.RequireString("repository_name")
 	if err != nil {
-		return mcp.NewToolResultError("repository_name parameter is required"), nil
+		return mcp.NewToolResultError("repository_name parameter is required"), err
 	}
 	version, err := req.RequireString("version")
 	if err != nil {
-		return mcp.NewToolResultError("version parameter is required"), nil
+		return mcp.NewToolResultError("version parameter is required"), err
 	}
 	resourceGroup, err := req.RequireString("resource_group")
 	if err != nil {
-		return mcp.NewToolResultError("resource_group parameter is required"), nil
+		return mcp.NewToolResultError("resource_group parameter is required"), err
 	}
 	resourceKind, err := req.RequireString("resource_kind")
 	if err != nil {
-		return mcp.NewToolResultError("resource_kind parameter is required"), nil
+		return mcp.NewToolResultError("resource_kind parameter is required"), err
 	}
 
 	// Get repositories
 	exs, err := s.client.GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples(ctx, account, repositoryName, version, resourceGroup, resourceKind)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to get repositories: %v", err)), err
 	}
 
 	b, err := json.Marshal(exs)
@@ -294,21 +294,20 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindExam
 }
 
 // handleReloadAuth handles the reload_auth tool.
-func (s *Server) handleReloadAuth(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (s *Server) handleReloadAuth(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Try to reload authentication token from UP CLI config
-	if token, err := s.authManager.GetCurrentToken(); err == nil {
+	token, err := s.authManager.GetCurrentToken()
+	if err == nil {
 		s.client.SetToken(token.AccessToken)
 
 		// Also reload server URL
 		if serverURL, err := s.authManager.GetCurrentServerURL(); err == nil {
 			s.client.SetBaseURL(serverURL)
 			return mcp.NewToolResultText(fmt.Sprintf("Successfully reloaded authentication and server configuration.\nServer URL: %s\nAuthentication: Loaded from UP CLI profile", serverURL)), nil
-		} else {
-			return mcp.NewToolResultText("Successfully reloaded authentication token from UP CLI profile, but failed to reload server URL."), nil
 		}
-	} else {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to reload authentication from UP CLI: %v. Please ensure you are logged in with 'up login'.", err)), nil
+		return mcp.NewToolResultText("Successfully reloaded authentication token from UP CLI profile, but failed to reload server URL."), nil
 	}
+	return mcp.NewToolResultError(fmt.Sprintf("Failed to reload authentication from UP CLI: %v. Please ensure you are logged in with 'up login'.", err)), nil
 }
 
 // formatSearchResults formats search results for display.
@@ -419,33 +418,37 @@ func formatPackageAssets(assets *marketplace.AssetResponse, assetType string) st
 
 	switch assetType {
 	case "docs", "readme", "releaseNotes":
-		if assets.Content != "" {
+		switch {
+		case assets.Content != "":
 			output += assets.Content
-		} else if assets.URL != "" {
+		case assets.URL != "":
 			output += fmt.Sprintf("Asset URL: %s", assets.URL)
-		} else {
+		default:
 			output += "No content available"
 		}
 	case "icon":
-		if assets.URL != "" {
+		switch {
+		case assets.URL != "":
 			output += fmt.Sprintf("Icon URL: %s", assets.URL)
-		} else {
+		default:
 			output += "Icon asset retrieved (binary data)"
 		}
 	case "sbom":
-		if assets.Content != "" {
+		switch {
+		case assets.Content != "":
 			output += assets.Content
-		} else if assets.URL != "" {
+		case assets.URL != "":
 			output += fmt.Sprintf("SBOM URL: %s", assets.URL)
-		} else {
+		default:
 			output += "No SBOM content available"
 		}
 	default:
-		if assets.Content != "" {
+		switch {
+		case assets.Content != "":
 			output += assets.Content
-		} else if assets.URL != "" {
+		case assets.URL != "":
 			output += fmt.Sprintf("Asset URL: %s", assets.URL)
-		} else {
+		default:
 			output += "No asset content available"
 		}
 	}

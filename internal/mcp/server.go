@@ -58,6 +58,16 @@ func NewServer(client *marketplace.Client) *Server {
 	return s
 }
 
+// Start starts the MCP server using stdio transport.
+func (s *Server) Start(_ context.Context) error {
+	return server.ServeStdio(s.mcpServer)
+}
+
+// GetMCPServer returns the underlying MCP server for use with other transports.
+func (s *Server) GetMCPServer() *server.MCPServer {
+	return s.mcpServer
+}
+
 // registerTools registers all available tools.
 func (s *Server) registerTools() {
 	// Search packages tool
@@ -342,14 +352,4 @@ func (s *Server) registerTools() {
 			Required: []string{"random_string"},
 		},
 	}, s.handleReloadAuth)
-}
-
-// Start starts the MCP server using stdio transport.
-func (s *Server) Start(ctx context.Context) error {
-	return server.ServeStdio(s.mcpServer)
-}
-
-// GetMCPServer returns the underlying MCP server for use with other transports.
-func (s *Server) GetMCPServer() *server.MCPServer {
-	return s.mcpServer
 }
