@@ -14,14 +14,14 @@ const (
 	UserAgent = "marketplace-mcp-server/1.0"
 )
 
-// Client represents a marketplace API client
+// Client represents a marketplace API client.
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
 	Token      string
 }
 
-// NewClient creates a new marketplace client
+// NewClient creates a new marketplace client.
 func NewClient() *Client {
 	return &Client{
 		BaseURL: "", // Will be set by the server from UP CLI profile
@@ -31,17 +31,17 @@ func NewClient() *Client {
 	}
 }
 
-// SetToken sets the authentication token
+// SetToken sets the authentication token.
 func (c *Client) SetToken(token string) {
 	c.Token = token
 }
 
-// SetBaseURL sets the base URL for the marketplace API
+// SetBaseURL sets the base URL for the marketplace API.
 func (c *Client) SetBaseURL(baseURL string) {
 	c.BaseURL = baseURL
 }
 
-// SearchPackages searches for packages using v1 or v2 API
+// SearchPackages searches for packages using v1 or v2 API.
 func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*SearchResponse, error) {
 	endpoint := "/v2/search"
 	if params.UseV1 {
@@ -108,7 +108,7 @@ func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*Sear
 
 	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -141,7 +141,7 @@ func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*Sear
 	return &searchResp, nil
 }
 
-// GetPackageMetadata gets metadata for a specific package
+// GetPackageMetadata gets metadata for a specific package.
 func (c *Client) GetPackageMetadata(ctx context.Context, account, repo, version string, useV1 bool) (*PackageMetadata, error) {
 	endpoint := fmt.Sprintf("/v2/packageMetadata/%s/%s", account, repo)
 	if version != "" {
@@ -152,7 +152,7 @@ func (c *Client) GetPackageMetadata(ctx context.Context, account, repo, version 
 		endpoint = fmt.Sprintf("/v1/packageMetadata/%s/%s", account, repo)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -185,7 +185,7 @@ func (c *Client) GetPackageMetadata(ctx context.Context, account, repo, version 
 	return &metadata, nil
 }
 
-// GetPackageAssets gets assets for a specific package version
+// GetPackageAssets gets assets for a specific package version.
 func (c *Client) GetPackageAssets(ctx context.Context, account, repo, version, assetType string) (*AssetResponse, error) {
 	endpoint := fmt.Sprintf("/v2/packages/%s/%s/%s/assets", account, repo, version)
 
@@ -199,7 +199,7 @@ func (c *Client) GetPackageAssets(ctx context.Context, account, repo, version, a
 	q.Set("redirect", "false") // Get the URL instead of redirecting
 	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -253,7 +253,7 @@ func (c *Client) GetPackageAssets(ctx context.Context, account, repo, version, a
 	return &assetResp, nil
 }
 
-// GetRepositories gets repositories for an account
+// GetRepositories gets repositories for an account.
 func (c *Client) GetRepositories(ctx context.Context, account string, params RepositoryParams) (*RepositoryResponse, error) {
 	endpoint := fmt.Sprintf("/v2/repositories/%s", account)
 	if params.UseV1 {
@@ -278,7 +278,7 @@ func (c *Client) GetRepositories(ctx context.Context, account string, params Rep
 
 	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -328,7 +328,7 @@ func (c *Client) GetRepositories(ctx context.Context, account string, params Rep
 	return &repoResp, nil
 }
 
-// GetV1PackagesAccountRepositoryVersionResources - [/v1/packages/{account}/{repositoryName}/{version}/resources]
+// GetV1PackagesAccountRepositoryVersionResources - [/v1/packages/{account}/{repositoryName}/{version}/resources].
 func (c *Client) GetV1PackagesAccountRepositoryVersionResources(ctx context.Context, account, repositoryName, version string) (*PackageResources, error) {
 	endpoint := fmt.Sprintf("/v1/packages/%s/%s/%s/resources", account, repositoryName, version)
 
@@ -337,7 +337,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResources(ctx context.Cont
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -380,7 +380,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResources(ctx context.Cont
 	return &res, nil
 }
 
-// GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposition - [/v1/packages/{account}/{repositoryName}/{version}/resources/{resourceGroup}/{resourceKind}/compositions/{compositionName}]
+// GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposition - [/v1/packages/{account}/{repositoryName}/{version}/resources/{resourceGroup}/{resourceKind}/compositions/{compositionName}].
 func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposition(ctx context.Context, account, repositoryName, version, resourceGroup, resourceKind, compositionName string) (string, error) {
 	endpoint := fmt.Sprintf("/v1/packages/%s/%s/%s/resources/%s/%s/compositions/%s", account, repositoryName, version, resourceGroup, resourceKind, compositionName)
 	u, err := url.Parse(c.BaseURL + endpoint)
@@ -388,7 +388,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposit
 		return "", fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -426,7 +426,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposit
 	return string(body), nil
 }
 
-// GetV1PackagesAccountRepositoryVersionResourcesGroupKind - [/v1/packages/{account}/{repositoryName}/{version}/resources/{resourceGroup}/{resourceKind}]
+// GetV1PackagesAccountRepositoryVersionResourcesGroupKind - [/v1/packages/{account}/{repositoryName}/{version}/resources/{resourceGroup}/{resourceKind}].
 func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKind(ctx context.Context, account, repositoryName, version, resourceGroup, resourceKind string) (string, error) {
 	endpoint := fmt.Sprintf("/v1/packages/%s/%s/%s/resources/%s/%s", account, repositoryName, version, resourceGroup, resourceKind)
 	u, err := url.Parse(c.BaseURL + endpoint)
@@ -434,7 +434,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKind(ctx con
 		return "", fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -472,7 +472,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKind(ctx con
 	return string(body), nil
 }
 
-// GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples - [/v1/packages/{account}/{repositoryName}/{version}/resources/{resourceGroup}/{resourceKind}/examples]
+// GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples - [/v1/packages/{account}/{repositoryName}/{version}/resources/{resourceGroup}/{resourceKind}/examples].
 func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples(ctx context.Context, account, repositoryName, version, resourceGroup, resourceKind string) (*Examples, error) {
 	endpoint := fmt.Sprintf("/v1/packages/%s/%s/%s/resources/%s/%s/examples", account, repositoryName, version, resourceGroup, resourceKind)
 	u, err := url.Parse(c.BaseURL + endpoint)
@@ -480,7 +480,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

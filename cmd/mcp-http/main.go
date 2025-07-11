@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/mark3labs/mcp-go/server"
+
 	"github.com/upbound/marketplace-mcp-server/internal/marketplace"
 	"github.com/upbound/marketplace-mcp-server/internal/mcp"
 )
