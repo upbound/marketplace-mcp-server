@@ -200,7 +200,7 @@ type XRDMeta struct {
 type CompositionMeta struct {
 	Name          string `json:"name"`
 	ResourceCount int    `json:"resourceCount"`
-	XrdAPIVersion string `json:"xrdApiVersion"`
+	XrdAPIVersion string `json:"xrdApiVersion"` //nolint:tagliatelle // This is marshalling an external API.
 	XrdKind       string `json:"xrdKind"`
 }
 

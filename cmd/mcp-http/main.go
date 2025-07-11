@@ -1,3 +1,6 @@
+/*
+Package main is the main entrypoint to the HTTP server.
+*/
 package main
 
 import (
@@ -28,7 +31,6 @@ func main() {
 
 	// Setup signal handling
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -54,8 +56,10 @@ func main() {
 	log.Printf("MCP endpoint will be available at http://localhost%s/mcp", addr)
 
 	if err := httpServer.Start(addr); err != nil {
+		cancel()
 		log.Fatalf("HTTP server failed to start: %v", err)
 	}
 
+	cancel()
 	log.Println("Server stopped")
 }

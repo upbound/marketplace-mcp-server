@@ -1,3 +1,6 @@
+/*
+Package main is the main entrypoint to the general server.
+*/
 package main
 
 import (
@@ -20,7 +23,6 @@ func main() {
 
 	// Setup signal handling
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -34,8 +36,10 @@ func main() {
 	// Start the MCP server
 	log.Println("Starting Upbound Marketplace MCP Server...")
 	if err := server.Start(ctx); err != nil {
+		cancel()
 		log.Fatalf("Server failed to start: %v", err)
 	}
 
+	cancel()
 	log.Println("Server stopped")
 }
