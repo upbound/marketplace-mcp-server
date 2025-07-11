@@ -23,6 +23,7 @@ PLATFORMS ?= linux_amd64 linux_arm64
 STDIO_BINARY_NAME=mcp-server
 HTTP_BINARY_NAME=mcp-http
 DOCKER_IMAGE=marketplace-mcp-server
+REGISTRY_ORG ?= xpkg.upbound.io/upbound
 VERSION?=latest
 
 .PHONY: all build clean test deps docker docker-build docker-run help
@@ -97,6 +98,12 @@ docker-build-http:
 	docker tag $(DOCKER_IMAGE)-http:$(VERSION) $(DOCKER_IMAGE)-http:latest
 
 docker-build: docker-build-stdio docker-build-http
+
+publish-docker-stdio: docker-build-stdio
+	@docker tag $(DOCKER_IMAGE):latest $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION)
+	@docker push $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION)
+
+publish: publish-docker-stdio
 
 # Run Docker containers
 docker-run-stdio:
