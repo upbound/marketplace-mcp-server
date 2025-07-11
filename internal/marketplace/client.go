@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 )
 
 const (
-	UserAgent = "marketplace-mcp-server/1.0"
+	userAgent = "marketplace-mcp-server/1.0"
 )
 
 // Client represents a marketplace API client.
@@ -19,16 +21,34 @@ type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
 	Token      string
+
+	log logging.Logger
+}
+
+// Option enables overriding the underlying Client.
+type Option func(*Client)
+
+// WithLogger overrides the default logger for the Client.
+func WithLogger(log logging.Logger) Option {
+	return func(c *Client) {
+		c.log = log
+	}
 }
 
 // NewClient creates a new marketplace client.
-func NewClient() *Client {
-	return &Client{
+func NewClient(opts ...Option) *Client {
+	c := &Client{
 		BaseURL: "", // Will be set by the server from UP CLI profile
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		log: logging.NewNopLogger(),
 	}
+
+	for _, o := range opts {
+		o(c)
+	}
+	return c
 }
 
 // SetToken sets the authentication token.
@@ -42,7 +62,7 @@ func (c *Client) SetBaseURL(baseURL string) {
 }
 
 // SearchPackages searches for packages using v1 or v2 API.
-func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*SearchResponse, error) {
+func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*SearchResponse, error) { //nolint:gocognit // This method is unfortunately above our complexity level. Be wary of increasing its complexity.
 	endpoint := "/v2/search"
 	if params.UseV1 {
 		endpoint = "/v1/search"
@@ -113,7 +133,7 @@ func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*Sear
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -126,7 +146,11 @@ func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*Sear
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -157,7 +181,7 @@ func (c *Client) GetPackageMetadata(ctx context.Context, account, repo, version 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -170,7 +194,11 @@ func (c *Client) GetPackageMetadata(ctx context.Context, account, repo, version 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -204,7 +232,7 @@ func (c *Client) GetPackageAssets(ctx context.Context, account, repo, version, a
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -217,7 +245,11 @@ func (c *Client) GetPackageAssets(ctx context.Context, account, repo, version, a
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusTemporaryRedirect {
 		location := resp.Header.Get("Location")
@@ -283,7 +315,7 @@ func (c *Client) GetRepositories(ctx context.Context, account string, params Rep
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -296,7 +328,11 @@ func (c *Client) GetRepositories(ctx context.Context, account string, params Rep
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("authentication required for this endpoint")
@@ -342,7 +378,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResources(ctx context.Cont
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -355,7 +391,11 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResources(ctx context.Cont
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("authentication required for this endpoint")
@@ -393,7 +433,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposit
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -406,7 +446,11 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindComposit
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return "", fmt.Errorf("authentication required for this endpoint")
@@ -439,7 +483,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKind(ctx con
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -452,7 +496,11 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKind(ctx con
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return "", fmt.Errorf("authentication required for this endpoint")
@@ -485,7 +533,7 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", userAgent)
 	if c.Token != "" {
 		// Use session cookie authentication like UP CLI
 		req.AddCookie(&http.Cookie{
@@ -498,7 +546,11 @@ func (c *Client) GetV1PackagesAccountRepositoryVersionResourcesGroupKindExamples
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.log.Info("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("authentication required for this endpoint")

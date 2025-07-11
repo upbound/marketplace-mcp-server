@@ -1,3 +1,6 @@
+/*
+Package auth handles authenticating with Upbound.
+*/
 package auth
 
 import (
@@ -30,8 +33,8 @@ type Profile struct {
 
 // Token represents an authentication token.
 type Token struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
+	AccessToken string `json:"access_token"` //nolint:tagliatelle // External API.
+	TokenType   string `json:"token_type"`   //nolint:tagliatelle // External API.
 }
 
 // Manager handles UP CLI configuration reading.
@@ -193,6 +196,42 @@ func (m *Manager) GetCurrentServerURL() (string, error) {
 	return u.String(), nil
 }
 
+// ValidateToken checks if the current token is valid (non-empty).
+func (m *Manager) ValidateToken() error {
+	token, err := m.GetCurrentToken()
+	if err != nil {
+		return err
+	}
+
+	if token.AccessToken == "" {
+		return fmt.Errorf("empty session token")
+	}
+
+	return nil
+}
+
+// Legacy methods for backward compatibility - these now return errors
+// since we don't do interactive authentication anymore
+
+// Login is deprecated - use UP CLI authentication instead.
+func (m *Manager) Login(_ any) (*Token, error) {
+	return nil, fmt.Errorf("interactive login not supported. Please use 'up login' to authenticate with UP CLI")
+}
+
+// GetToken is deprecated - use GetCurrentToken instead.
+func (m *Manager) GetToken() *Token {
+	token, err := m.GetCurrentToken()
+	if err != nil {
+		return nil
+	}
+	return token
+}
+
+// RefreshToken is not applicable for session-based auth.
+func (m *Manager) RefreshToken(_ any) (*Token, error) {
+	return nil, fmt.Errorf("session token refresh not supported, please run 'up login' to re-authenticate")
+}
+
 // loadConfig loads the UP CLI configuration from disk.
 func (m *Manager) loadConfig() (*UPConfig, error) {
 	// Check if config file exists
@@ -213,40 +252,4 @@ func (m *Manager) loadConfig() (*UPConfig, error) {
 	}
 
 	return &config, nil
-}
-
-// ValidateToken checks if the current token is valid (non-empty).
-func (m *Manager) ValidateToken() error {
-	token, err := m.GetCurrentToken()
-	if err != nil {
-		return err
-	}
-
-	if token.AccessToken == "" {
-		return fmt.Errorf("empty session token")
-	}
-
-	return nil
-}
-
-// Legacy methods for backward compatibility - these now return errors
-// since we don't do interactive authentication anymore
-
-// Login is deprecated - use UP CLI authentication instead.
-func (m *Manager) Login(ctx any) (*Token, error) {
-	return nil, fmt.Errorf("interactive login not supported. Please use 'up login' to authenticate with UP CLI")
-}
-
-// GetToken is deprecated - use GetCurrentToken instead.
-func (m *Manager) GetToken() *Token {
-	token, err := m.GetCurrentToken()
-	if err != nil {
-		return nil
-	}
-	return token
-}
-
-// RefreshToken is not applicable for session-based auth.
-func (m *Manager) RefreshToken(ctx any) (*Token, error) {
-	return nil, fmt.Errorf("session token refresh not supported, please run 'up login' to re-authenticate")
 }
