@@ -62,7 +62,11 @@ temp/
 
 # Build artifacts
 dist/
-build/
 
 # Docker
 .dockerignore 
+
+# Build submodule
+_output
+.cache
+.work

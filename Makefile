@@ -1,30 +1,57 @@
+# Pull in .envrc file details, if it exists. This exists in the event you do
+# not have direnv installed.
+ifneq (,$(wildcard ./.envrc))
+    include .envrc
+    export
+endif
+
+# ====================================================================================
+# Setup Project
+
+PROJECT_NAME := marketplace-mcp-server
+PROJECT_REPO := github.com/upbound/$(PROJECT_NAME)
+
+PLATFORMS ?= linux_amd64 linux_arm64
+
+# -include will silently skip missing files, which allows us
+# to load those files with a target in the Makefile. If only
+# "include" was used, the make command would fail and refuse
+# to run a target until the include commands succeeded.
+-include build/makelib/common.mk
+
 # Variables
 STDIO_BINARY_NAME=mcp-server
 HTTP_BINARY_NAME=mcp-http
 DOCKER_IMAGE=marketplace-mcp-server
 VERSION?=latest
 
-# Go parameters
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
-GOMOD=$(GOCMD) mod
-
-# Build flags
-LDFLAGS=-ldflags "-s -w"
-BUILD_FLAGS=-a -installsuffix cgo
-
 .PHONY: all build clean test deps docker docker-build docker-run help
+
+# ====================================================================================
+# Setup Go
+
+# Set a sane default so that the nprocs calculation below is less noisy on the initial
+# loading of this file
+NPROCS ?= 1
+
+GO_REQUIRED_VERSION = 1.24
+GOLANGCILINT_VERSION = 2.2.0
+GO111MODULE = on
+GO_NOCOV = true
+GO_SUBDIRS = cmd
+GO_LINT_DIFF_TARGET ?= HEAD~
+GO_LINT_ARGS ?= --fix --new --new-from-rev=$(GO_LINT_DIFF_TARGET)
+-include build/makelib/golang.mk
 
 # Default target
 all: clean deps test build
 
 # Build the binaries
-build:
+build-binaries:
 	CGO_ENABLED=0 GOOS=linux $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o ./bin/$(STDIO_BINARY_NAME) ./cmd/mcp-server
 	CGO_ENABLED=0 GOOS=linux $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o ./bin/$(HTTP_BINARY_NAME) ./cmd/mcp-http
+
+build: build-binaries
 
 # Build for current platform
 build-local:
@@ -32,13 +59,11 @@ build-local:
 	$(GOBUILD) $(LDFLAGS) -o ./bin/$(HTTP_BINARY_NAME) ./cmd/mcp-http
 
 # Clean build artifacts
-clean:
+clean-local:
 	$(GOCLEAN)
 	rm -f ./bin/$(STDIO_BINARY_NAME) ./bin/$(HTTP_BINARY_NAME)
 
-# Run tests
-test:
-	$(GOTEST) -v ./...
+clean: clean-local
 
 # Run tests with coverage
 test-coverage:
@@ -79,10 +104,6 @@ docker-run-stdio:
 
 docker-run-http:
 	docker run --rm -p 8765:8765 -v ~/.up:/mcp/.up:ro $(DOCKER_IMAGE)-http:$(VERSION)
-
-# Lint the code
-lint:
-	golangci-lint run
 
 # Format the code
 fmt:
@@ -132,7 +153,7 @@ inspector:
 	@DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
 
 # Help target
-help:
+help-repo:
 	@echo "Available targets:"
 	@echo "  all                - Clean, download deps, test, and build"
 	@echo "  build              - Build both stdio and HTTP binaries for Linux"
@@ -161,3 +182,5 @@ help:
 	@echo "  check              - Run all checks (deps, vet, lint, test)"
 	@echo "  help               - Show this help message" 
 	@echo "  inspector          - Run a local mcp inspector" 
+
+help: help-repo
