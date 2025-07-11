@@ -11,7 +11,7 @@ import (
 	"github.com/upbound/marketplace-mcp-server/internal/marketplace"
 )
 
-// handleSearchPackages handles the search_packages tool
+// handleSearchPackages handles the search_packages tool.
 func (s *Server) handleSearchPackages(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract parameters using built-in methods
 	query := req.GetString("query", "")
@@ -54,7 +54,7 @@ func (s *Server) handleSearchPackages(ctx context.Context, req mcp.CallToolReque
 	return mcp.NewToolResultText(formatSearchResults(result)), nil
 }
 
-// handleGetPackageMetadata handles the get_package_metadata tool
+// handleGetPackageMetadata handles the get_package_metadata tool.
 func (s *Server) handleGetPackageMetadata(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -80,7 +80,7 @@ func (s *Server) handleGetPackageMetadata(ctx context.Context, req mcp.CallToolR
 	return mcp.NewToolResultText(formatPackageMetadata(metadata)), nil
 }
 
-// handleGetPackageAssets handles the get_package_assets tool
+// handleGetPackageAssets handles the get_package_assets tool.
 func (s *Server) handleGetPackageAssets(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -124,7 +124,7 @@ func (s *Server) handleGetPackageAssets(ctx context.Context, req mcp.CallToolReq
 	return mcp.NewToolResultText(formatPackageAssets(assets, assetType)), nil
 }
 
-// handleGetRepositories handles the get_repositories tool
+// handleGetRepositories handles the get_repositories tool.
 func (s *Server) handleGetRepositories(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -155,7 +155,7 @@ func (s *Server) handleGetRepositories(ctx context.Context, req mcp.CallToolRequ
 	return mcp.NewToolResultText(formatRepositories(repos)), nil
 }
 
-// handleGetPackagesAccountRepositoryVersionResources handles the get_repositories tool
+// handleGetPackagesAccountRepositoryVersionResources handles the get_repositories tool.
 func (s *Server) handleGetPackagesAccountRepositoryVersionResources(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -185,7 +185,7 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResources(ctx context.
 	return mcp.NewToolResultText(string(b)), nil
 }
 
-// handleGetPackagesAccountRepositoryVersionResources handles the get_repositories tool
+// handleGetPackagesAccountRepositoryVersionResources handles the get_repositories tool.
 func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindComposition(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -222,7 +222,7 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindComp
 	return mcp.NewToolResultText(raw), nil
 }
 
-// handleGetPackagesAccountRepositoryVersionResourcesGroupKind handles the get_repositories tool
+// handleGetPackagesAccountRepositoryVersionResourcesGroupKind handles the get_repositories tool.
 func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKind(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -255,7 +255,7 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKind(ctx
 	return mcp.NewToolResultText(raw), nil
 }
 
-// handleGetPackagesAccountRepositoryVersionResourcesGroupKind handles the get_repositories tool
+// handleGetPackagesAccountRepositoryVersionResourcesGroupKind handles the get_repositories tool.
 func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindExamples(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract required parameters
 	account, err := req.RequireString("account")
@@ -293,7 +293,7 @@ func (s *Server) handleGetPackagesAccountRepositoryVersionResourcesGroupKindExam
 	return mcp.NewToolResultText(string(b)), nil
 }
 
-// handleReloadAuth handles the reload_auth tool
+// handleReloadAuth handles the reload_auth tool.
 func (s *Server) handleReloadAuth(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Try to reload authentication token from UP CLI config
 	if token, err := s.authManager.GetCurrentToken(); err == nil {
@@ -311,7 +311,7 @@ func (s *Server) handleReloadAuth(ctx context.Context, req mcp.CallToolRequest) 
 	}
 }
 
-// formatSearchResults formats search results for display
+// formatSearchResults formats search results for display.
 func formatSearchResults(result *marketplace.SearchResponse) string {
 	if result == nil {
 		return "No search results"
@@ -346,7 +346,7 @@ func formatSearchResults(result *marketplace.SearchResponse) string {
 	return output
 }
 
-// formatPackageMetadata formats package metadata for display
+// formatPackageMetadata formats package metadata for display.
 func formatPackageMetadata(metadata *marketplace.PackageMetadata) string {
 	if metadata == nil {
 		return "No package metadata"
@@ -408,7 +408,7 @@ func formatPackageMetadata(metadata *marketplace.PackageMetadata) string {
 	return output
 }
 
-// formatPackageAssets formats package assets for display
+// formatPackageAssets formats package assets for display.
 func formatPackageAssets(assets *marketplace.AssetResponse, assetType string) string {
 	if assets == nil {
 		return fmt.Sprintf("No %s assets found", assetType)
@@ -453,7 +453,7 @@ func formatPackageAssets(assets *marketplace.AssetResponse, assetType string) st
 	return output
 }
 
-// formatRepositories formats repositories for display
+// formatRepositories formats repositories for display.
 func formatRepositories(repos *marketplace.RepositoryResponse) string {
 	if repos == nil {
 		return "No repositories found"

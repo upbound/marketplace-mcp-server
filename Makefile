@@ -40,7 +40,7 @@ GO111MODULE = on
 GO_NOCOV = true
 GO_SUBDIRS = cmd
 GO_LINT_DIFF_TARGET ?= HEAD~
-GO_LINT_ARGS ?= --fix --new --new-from-rev=$(GO_LINT_DIFF_TARGET)
+GO_LINT_ARGS ?= --fix
 -include build/makelib/golang.mk
 
 # Default target

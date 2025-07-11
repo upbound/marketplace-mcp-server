@@ -6,18 +6,19 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
 	"github.com/upbound/marketplace-mcp-server/internal/auth"
 	"github.com/upbound/marketplace-mcp-server/internal/marketplace"
 )
 
-// Server represents the MCP server
+// Server represents the MCP server.
 type Server struct {
 	mcpServer   *server.MCPServer
 	client      *marketplace.Client
 	authManager *auth.Manager
 }
 
-// NewServer creates a new MCP server using mcp-go framework
+// NewServer creates a new MCP server using mcp-go framework.
 func NewServer(client *marketplace.Client) *Server {
 	// Initialize auth manager
 	authManager := auth.NewManager()
@@ -57,7 +58,7 @@ func NewServer(client *marketplace.Client) *Server {
 	return s
 }
 
-// registerTools registers all available tools
+// registerTools registers all available tools.
 func (s *Server) registerTools() {
 	// Search packages tool
 	s.mcpServer.AddTool(mcp.Tool{
@@ -222,7 +223,7 @@ func (s *Server) registerTools() {
 					"description": "The version of the package. For example v1.23.1.",
 				},
 			},
-			Required: []string{"account", "respository_name", "version"},
+			Required: []string{"account", "repository_name", "version"},
 		},
 	}, s.handleGetPackagesAccountRepositoryVersionResources)
 
@@ -258,7 +259,7 @@ func (s *Server) registerTools() {
 					"description": "The name of the composition.",
 				},
 			},
-			Required: []string{"account", "respository_name", "version", "resource_group", "resource_kind", "composition_name"},
+			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind", "composition_name"},
 		},
 	}, s.handleGetPackagesAccountRepositoryVersionResourcesGroupKindComposition)
 
@@ -290,7 +291,7 @@ func (s *Server) registerTools() {
 					"description": "The kind of the resource. For example Bucket.",
 				},
 			},
-			Required: []string{"account", "respository_name", "version", "resource_group", "resource_kind", "composition_name"},
+			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind", "composition_name"},
 		},
 	}, s.handleGetPackagesAccountRepositoryVersionResourcesGroupKind)
 
@@ -322,7 +323,7 @@ func (s *Server) registerTools() {
 					"description": "The kind of the resource. For example Bucket.",
 				},
 			},
-			Required: []string{"account", "respository_name", "version", "resource_group", "resource_kind", "composition_name"},
+			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind", "composition_name"},
 		},
 	}, s.handleGetPackagesAccountRepositoryVersionResourcesGroupKindExamples)
 
@@ -343,12 +344,12 @@ func (s *Server) registerTools() {
 	}, s.handleReloadAuth)
 }
 
-// Start starts the MCP server using stdio transport
+// Start starts the MCP server using stdio transport.
 func (s *Server) Start(ctx context.Context) error {
 	return server.ServeStdio(s.mcpServer)
 }
 
-// GetMCPServer returns the underlying MCP server for use with other transports
+// GetMCPServer returns the underlying MCP server for use with other transports.
 func (s *Server) GetMCPServer() *server.MCPServer {
 	return s.mcpServer
 }

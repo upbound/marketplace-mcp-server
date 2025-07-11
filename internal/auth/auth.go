@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// UPConfig represents the UP CLI configuration structure
+// UPConfig represents the UP CLI configuration structure.
 type UPConfig struct {
 	Upbound struct {
 		Default  string             `json:"default"`
@@ -17,7 +17,7 @@ type UPConfig struct {
 	} `json:"upbound"`
 }
 
-// Profile represents a UP CLI profile
+// Profile represents a UP CLI profile.
 type Profile struct {
 	ID           string `json:"id"`
 	ProfileType  string `json:"profileType"`
@@ -28,18 +28,18 @@ type Profile struct {
 	Domain       string `json:"domain"`
 }
 
-// Token represents an authentication token
+// Token represents an authentication token.
 type Token struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 }
 
-// Manager handles UP CLI configuration reading
+// Manager handles UP CLI configuration reading.
 type Manager struct {
 	configPath string
 }
 
-// NewManager creates a new authentication manager
+// NewManager creates a new authentication manager.
 func NewManager() *Manager {
 	var configPath string
 
@@ -67,7 +67,7 @@ func NewManager() *Manager {
 	}
 }
 
-// GetCurrentToken returns the session token from the current UP CLI profile
+// GetCurrentToken returns the session token from the current UP CLI profile.
 func (m *Manager) GetCurrentToken() (*Token, error) {
 	config, err := m.loadConfig()
 	if err != nil {
@@ -97,7 +97,7 @@ func (m *Manager) GetCurrentToken() (*Token, error) {
 	}, nil
 }
 
-// GetTokenForProfile returns the session token for a specific profile
+// GetTokenForProfile returns the session token for a specific profile.
 func (m *Manager) GetTokenForProfile(profileName string) (*Token, error) {
 	config, err := m.loadConfig()
 	if err != nil {
@@ -121,7 +121,7 @@ func (m *Manager) GetTokenForProfile(profileName string) (*Token, error) {
 	}, nil
 }
 
-// GetCurrentProfile returns the current profile information
+// GetCurrentProfile returns the current profile information.
 func (m *Manager) GetCurrentProfile() (*Profile, error) {
 	config, err := m.loadConfig()
 	if err != nil {
@@ -143,7 +143,7 @@ func (m *Manager) GetCurrentProfile() (*Profile, error) {
 	return &profile, nil
 }
 
-// ListProfiles returns all available profiles
+// ListProfiles returns all available profiles.
 func (m *Manager) ListProfiles() (map[string]Profile, error) {
 	config, err := m.loadConfig()
 	if err != nil {
@@ -153,7 +153,7 @@ func (m *Manager) ListProfiles() (map[string]Profile, error) {
 	return config.Upbound.Profiles, nil
 }
 
-// GetDefaultProfileName returns the name of the default profile
+// GetDefaultProfileName returns the name of the default profile.
 func (m *Manager) GetDefaultProfileName() (string, error) {
 	config, err := m.loadConfig()
 	if err != nil {
@@ -167,7 +167,7 @@ func (m *Manager) GetDefaultProfileName() (string, error) {
 	return config.Upbound.Default, nil
 }
 
-// GetCurrentServerURL returns the server URL from the current profile
+// GetCurrentServerURL returns the server URL from the current profile.
 func (m *Manager) GetCurrentServerURL() (string, error) {
 	profile, err := m.GetCurrentProfile()
 	if err != nil {
@@ -193,7 +193,7 @@ func (m *Manager) GetCurrentServerURL() (string, error) {
 	return u.String(), nil
 }
 
-// loadConfig loads the UP CLI configuration from disk
+// loadConfig loads the UP CLI configuration from disk.
 func (m *Manager) loadConfig() (*UPConfig, error) {
 	// Check if config file exists
 	if _, err := os.Stat(m.configPath); os.IsNotExist(err) {
@@ -215,7 +215,7 @@ func (m *Manager) loadConfig() (*UPConfig, error) {
 	return &config, nil
 }
 
-// ValidateToken checks if the current token is valid (non-empty)
+// ValidateToken checks if the current token is valid (non-empty).
 func (m *Manager) ValidateToken() error {
 	token, err := m.GetCurrentToken()
 	if err != nil {
@@ -232,12 +232,12 @@ func (m *Manager) ValidateToken() error {
 // Legacy methods for backward compatibility - these now return errors
 // since we don't do interactive authentication anymore
 
-// Login is deprecated - use UP CLI authentication instead
+// Login is deprecated - use UP CLI authentication instead.
 func (m *Manager) Login(ctx any) (*Token, error) {
 	return nil, fmt.Errorf("interactive login not supported. Please use 'up login' to authenticate with UP CLI")
 }
 
-// GetToken is deprecated - use GetCurrentToken instead
+// GetToken is deprecated - use GetCurrentToken instead.
 func (m *Manager) GetToken() *Token {
 	token, err := m.GetCurrentToken()
 	if err != nil {
@@ -246,7 +246,7 @@ func (m *Manager) GetToken() *Token {
 	return token
 }
 
-// RefreshToken is not applicable for session-based auth
+// RefreshToken is not applicable for session-based auth.
 func (m *Manager) RefreshToken(ctx any) (*Token, error) {
 	return nil, fmt.Errorf("session token refresh not supported, please run 'up login' to re-authenticate")
 }
