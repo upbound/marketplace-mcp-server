@@ -233,7 +233,7 @@ func (m *Manager) ValidateToken() error {
 // since we don't do interactive authentication anymore
 
 // Login is deprecated - use UP CLI authentication instead
-func (m *Manager) Login(ctx interface{}) (*Token, error) {
+func (m *Manager) Login(ctx any) (*Token, error) {
 	return nil, fmt.Errorf("interactive login not supported. Please use 'up login' to authenticate with UP CLI")
 }
 
@@ -247,6 +247,6 @@ func (m *Manager) GetToken() *Token {
 }
 
 // RefreshToken is not applicable for session-based auth
-func (m *Manager) RefreshToken(ctx interface{}) (*Token, error) {
+func (m *Manager) RefreshToken(ctx any) (*Token, error) {
 	return nil, fmt.Errorf("session token refresh not supported, please run 'up login' to re-authenticate")
 }

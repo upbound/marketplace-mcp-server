@@ -65,42 +65,42 @@ func (s *Server) registerTools() {
 		Description: "Search for packages in the Upbound Marketplace",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
-			Properties: map[string]interface{}{
-				"query": map[string]interface{}{
+			Properties: map[string]any{
+				"query": map[string]any{
 					"type":        "string",
 					"description": "Search query for packages",
 				},
-				"family": map[string]interface{}{
+				"family": map[string]any{
 					"type":        "string",
 					"description": "Family repository key to filter by",
 				},
-				"package_type": map[string]interface{}{
+				"package_type": map[string]any{
 					"type":        "string",
 					"description": "Type of package (provider, configuration, function)",
 				},
-				"account_name": map[string]interface{}{
+				"account_name": map[string]any{
 					"type":        "string",
 					"description": "Account/organization name to filter by",
 				},
-				"tier": map[string]interface{}{
+				"tier": map[string]any{
 					"type":        "string",
 					"description": "Package tier (official, community, etc.)",
 				},
-				"public": map[string]interface{}{
+				"public": map[string]any{
 					"type":        "boolean",
 					"description": "Filter by public/private packages",
 				},
-				"size": map[string]interface{}{
+				"size": map[string]any{
 					"type":        "integer",
 					"description": "Number of results to return (max 500)",
 					"default":     20,
 				},
-				"page": map[string]interface{}{
+				"page": map[string]any{
 					"type":        "integer",
 					"description": "Page number (0-indexed)",
 					"default":     0,
 				},
-				"use_v1": map[string]interface{}{
+				"use_v1": map[string]any{
 					"type":        "boolean",
 					"description": "Use v1 API instead of v2",
 					"default":     false,
@@ -115,20 +115,20 @@ func (s *Server) registerTools() {
 		Description: "Get detailed metadata for a specific package",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
-			Properties: map[string]interface{}{
-				"account": map[string]interface{}{
+			Properties: map[string]any{
+				"account": map[string]any{
 					"type":        "string",
 					"description": "Account/organization name",
 				},
-				"repository": map[string]interface{}{
+				"repository": map[string]any{
 					"type":        "string",
 					"description": "Repository name",
 				},
-				"version": map[string]interface{}{
+				"version": map[string]any{
 					"type":        "string",
 					"description": "Package version (optional, gets latest if not specified)",
 				},
-				"use_v1": map[string]interface{}{
+				"use_v1": map[string]any{
 					"type":        "boolean",
 					"description": "Use v1 API instead of v2",
 					"default":     false,
@@ -144,20 +144,20 @@ func (s *Server) registerTools() {
 		Description: "Get assets (documentation, icons, release notes, etc.) for a specific package version",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
-			Properties: map[string]interface{}{
-				"account": map[string]interface{}{
+			Properties: map[string]any{
+				"account": map[string]any{
 					"type":        "string",
 					"description": "Account/organization name",
 				},
-				"repository": map[string]interface{}{
+				"repository": map[string]any{
 					"type":        "string",
 					"description": "Repository name",
 				},
-				"version": map[string]interface{}{
+				"version": map[string]any{
 					"type":        "string",
 					"description": "Package version or 'latest'",
 				},
-				"asset_type": map[string]interface{}{
+				"asset_type": map[string]any{
 					"type":        "string",
 					"description": "Type of asset to retrieve",
 					"enum":        []string{"docs", "icon", "readme", "releaseNotes", "sbom"},
@@ -173,26 +173,26 @@ func (s *Server) registerTools() {
 		Description: "Get repositories for an account",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
-			Properties: map[string]interface{}{
-				"account": map[string]interface{}{
+			Properties: map[string]any{
+				"account": map[string]any{
 					"type":        "string",
 					"description": "Account/organization name",
 				},
-				"filter": map[string]interface{}{
+				"filter": map[string]any{
 					"type":        "string",
 					"description": "AIP-160 formatted filter (v2 only)",
 				},
-				"size": map[string]interface{}{
+				"size": map[string]any{
 					"type":        "integer",
 					"description": "Number of results to return (max 100)",
 					"default":     20,
 				},
-				"page": map[string]interface{}{
+				"page": map[string]any{
 					"type":        "integer",
 					"description": "Page number (0-indexed)",
 					"default":     0,
 				},
-				"use_v1": map[string]interface{}{
+				"use_v1": map[string]any{
 					"type":        "boolean",
 					"description": "Use v1 API instead of v2",
 					"default":     false,
@@ -208,8 +208,8 @@ func (s *Server) registerTools() {
 		Description: "Reload authentication and server configuration from UP CLI configuration (useful if you switched profiles)",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
-			Properties: map[string]interface{}{
-				"random_string": map[string]interface{}{
+			Properties: map[string]any{
+				"random_string": map[string]any{
 					"type":        "string",
 					"description": "Dummy parameter for no-parameter tools",
 				},
