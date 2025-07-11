@@ -90,11 +90,11 @@ run-http:
 
 # Build Docker images
 docker-build-stdio:
-	docker build --target stdio -t $(DOCKER_IMAGE):$(VERSION) .
+	docker buildx build --target stdio -t $(DOCKER_IMAGE):$(VERSION) . --load
 	docker tag $(DOCKER_IMAGE):$(VERSION) $(DOCKER_IMAGE):latest
 
 docker-build-http:
-	docker build --target http -t $(DOCKER_IMAGE)-http:$(VERSION) .
+	docker buildx build --target http -t $(DOCKER_IMAGE)-http:$(VERSION) . --load
 	docker tag $(DOCKER_IMAGE)-http:$(VERSION) $(DOCKER_IMAGE)-http:latest
 
 docker-build: docker-build-stdio docker-build-http
