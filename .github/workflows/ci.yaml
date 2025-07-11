@@ -141,12 +141,12 @@ jobs:
           name: output
           path: _output/**
 
-      # - name: Login to Upbound Marketplace
-      #   uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
-      #   with:
-      #     registry: xpkg.upbound.io/upbound
-      #     username: ${{ secrets.XPKG_ACCESS_ID }}
-      #     password: ${{ secrets.XPKG_ACCESS_TOKEN }}
+      - name: Login to Upbound Marketplace
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: xpkg.upbound.io/upbound
+          username: ${{ secrets.XPKG_ACCESS_ID }}
+          password: ${{ secrets.XPKG_ACCESS_TOKEN }}
 
       # - name: Publish Artifacts
       #   run: |
