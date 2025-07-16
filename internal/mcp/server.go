@@ -301,7 +301,7 @@ func (s *Server) registerTools() {
 					"description": "The kind of the resource. For example Bucket.",
 				},
 			},
-			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind", "composition_name"},
+			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind"},
 		},
 	}, s.handleGetPackagesAccountRepositoryVersionResourcesGroupKind)
 
@@ -333,7 +333,7 @@ func (s *Server) registerTools() {
 					"description": "The kind of the resource. For example Bucket.",
 				},
 			},
-			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind", "composition_name"},
+			Required: []string{"account", "repository_name", "version", "resource_group", "resource_kind"},
 		},
 	}, s.handleGetPackagesAccountRepositoryVersionResourcesGroupKindExamples)
 
