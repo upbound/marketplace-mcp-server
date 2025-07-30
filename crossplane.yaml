@@ -1,0 +1,14 @@
+apiVersion: meta.pkg.upbound.io/v1beta1
+kind: AddOn
+metadata:
+  annotations:
+    friendly-name.meta.crossplane.io: AddOn Marketplace MCP Server
+    meta.crossplane.io/description: |
+      Upbound AddOn package that deploys a DeploymentRuntimeConfig including
+      the marketplace-mcp-server for use by an Upbound Intelligent Function.
+    meta.crossplane.io/maintainer: Upbound Maintainers <info@upbound.io>
+  name: marketplace-mcp-server
+spec:
+  packagingType: Helm
+  helm:
+    releaseName: marketplace-mcp-server
