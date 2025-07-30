@@ -401,11 +401,23 @@ Browse and manage organization repositories:
 
 ## Configuration
 
-The server automatically detects and loads UP CLI configuration from the following locations:
+The server automatically detects and loads UP CLI configuration from the 
+following locations:
 1. `/mcp/.up/config.json` (when running in Docker with mounted config)
 2. `~/.up/config.json` (default UP CLI location)
 
-No additional configuration is required if UP CLI is properly set up and authenticated.
+No additional configuration is required if UP CLI is properly set up and 
+authenticated.
+
+### As an Addon
+Note, the marketplace-mcp-server does still need authentication as described in
+the above section. In order to fulfill that need, you should provide a secret
+with the contents of the ~/.up/config.json.
+
+For example:
+```bash
+  kubectl -n crossplane-system create secret generic up-config --from-file=config.json=path/to/up/config.json
+```
 
 ## Development
 
