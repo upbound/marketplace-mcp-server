@@ -60,6 +60,9 @@ HELM_VALUES_TEMPLATE_SKIPPED = true
 helm.version:
 	@echo $(HELM_CHART_VERSION)
 
+# ====================================================================================
+# General targets
+
 # Default target
 all: clean deps test build
 
