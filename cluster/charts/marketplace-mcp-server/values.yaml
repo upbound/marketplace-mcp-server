@@ -15,8 +15,11 @@ extraArgs:
   # packageRuntime:
   # - --debug
   packageRuntime: []
-  # controlplaneMcpServer is the name of the controlplane-mcp-server sidecar.
+  # marketplaceMcpServer is the name of the marketplace-mcp-server sidecar.
   # example
   # marketplaceMcpServer:
   # - --debug
   marketplaceMcpServer: []
+
+upConfig:
+  secretName: up-config

@@ -35,3 +35,11 @@ spec:
             {{- with .Values.extraArgs.controlplaneMcpServer }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
+            volumeMounts:
+            - mountPath: /mcp/.up/
+              name: up-config
+              readOnly: true
+          volumes:
+          - name: up-config
+            secret:
+              secretName: {{ .Values.upConfig.secretName }}
