@@ -1,0 +1,22 @@
+image:
+  repository: xpkg.upbound.io/upbound/marketplace-mcp-server-http
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # The name of the service account to use.
+  name: function-with-marketplace-mcp
+
+# ExtraArgs to specify for the given container.
+extraArgs:
+  # packageRuntime is the name of the crossplane function.
+  # example
+  # packageRuntime:
+  # - --debug
+  packageRuntime: []
+  # controlplaneMcpServer is the name of the controlplane-mcp-server sidecar.
+  # example
+  # marketplaceMcpServer:
+  # - --debug
+  marketplaceMcpServer: []
