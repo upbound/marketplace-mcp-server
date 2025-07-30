@@ -4,8 +4,6 @@
 *.dll
 *.so
 *.dylib
-marketplace-mcp-server
-marketplace-mcp-server-*
 bin/*
 
 # Test binary, built with `go test -c`

@@ -44,6 +44,22 @@ GO_LINT_DIFF_TARGET ?= HEAD~
 GO_LINT_ARGS ?= --fix
 -include build/makelib/golang.mk
 
+# ====================================================================================
+# Setup Helm
+USE_HELM3 = true
+HELM_BASE_URL = https://charts.upbound.io
+HELM_S3_BUCKET = upbound.charts
+HELM_CHARTS = marketplace-mcp-server
+HELM_VALUES_TEMPLATE_SKIPPED = true
+
+-include build/makelib/k8s_tools.mk
+-include build/makelib/helm.mk
+
+# ====================================================================================
+# CI
+helm.version:
+	@echo $(HELM_CHART_VERSION)
+
 # Default target
 all: clean deps test build
 
@@ -103,7 +119,11 @@ publish-docker-stdio: docker-build-stdio
 	@docker tag $(DOCKER_IMAGE):latest $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION)
 	@docker push $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION)
 
-publish: publish-docker-stdio
+publish-docker-http: docker-build-http
+	@docker tag $(DOCKER_IMAGE)-http:latest $(REGISTRY_ORG)/$(DOCKER_IMAGE)-http:$(VERSION)
+	@docker push $(REGISTRY_ORG)/$(DOCKER_IMAGE)-http:$(VERSION)
+
+publish: publish-docker-stdio publish-docker-http
 
 # Run Docker containers
 docker-run-stdio:
