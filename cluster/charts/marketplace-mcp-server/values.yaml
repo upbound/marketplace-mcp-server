@@ -1,5 +1,5 @@
 image:
-  repository: xpkg.upbound.io/upbound/marketplace-mcp-server-http
+  repository: xpkg.dev-deba7a0e.u6d.dev/upbound/marketplace-mcp-server-http
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
