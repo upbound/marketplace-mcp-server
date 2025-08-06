@@ -1,6 +1,7 @@
 # Upbound Marketplace MCP Server
 [![CI](https://github.com/upbound/marketplace-mcp-server/actions/workflows/ci.yaml/badge.svg)](https://github.com/upbound/marketplace-mcp-server/actions/workflows/ci.yaml)
 [![Slack](https://img.shields.io/badge/slack-upbound_crossplane-purple?logo=slack)](https://crossplane.slack.com/archives/C01TRKD4623)
+[![GitHub release](https://img.shields.io/github/release/upbound/marketplace-mcp-server/all.svg)](https://github.com/upbound/marketplace-mcp-server/releases)
 
 A Model Context Protocol (MCP) server that provides AI agents with access to the Upbound Marketplace API. This server enables agents to search, discover, and manage marketplace packages and repositories, with a focus on helping users leverage marketplace resources for Crossplane compositions and package management.
 
