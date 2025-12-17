@@ -180,7 +180,6 @@ jobs:
         with:
           skip-login: true
           channel: main
-          version: v0.39.0-384.g0a0c8634
 
       - name: Login to Upbound Marketplace
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
