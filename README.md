@@ -19,6 +19,33 @@ Built using the [mcp-go](https://github.com/mark3labs/mcp-go) framework for robu
 
 ## Installation
 
+### Using pre-existing artifacts for local agents
+
+Steps:
+1. Login using `up`
+```
+up login
+```
+2. Start the marketplace-mcp-server making sure to reference your `up` config
+   1. Note the location for your `up` config is generally located under $HOME/.up.
+   2. The below command will mount your up config into the docker container running the mcp server so that it can reuse your identity when interacting with the Upbound Marketplace.
+```
+docker run --name mcp-marketplace --rm -i -d -p 8765:8765 -v {{REPLACE WITH THE DIRECTORY FOR up}}/.up:/mcp/.up:ro xpkg.upbound.io/upbound/marketplace-mcp-server-http:v0.1.0
+``` 
+
+3. Update the mcpServers block specifying the location of the marketplace mcp-server
+```json
+{
+  "mcpServers": {
+    "marketplace": {
+      "httpUrl": "http://localhost:8765/mcp"
+    }
+  }
+}
+```
+
+Start the marketplace-mcp-server-http
+
 ### Using Docker (Recommended)
 
 Build the Docker image locally:
