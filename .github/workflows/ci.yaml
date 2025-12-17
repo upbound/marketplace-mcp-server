@@ -147,12 +147,14 @@ jobs:
 
       - name: Login to Upbound Marketplace
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        if: env.XPKG_ACCESS_ID != ''
         with:
           registry: xpkg.upbound.io/upbound
           username: ${{ secrets.XPKG_ACCESS_ID }}
           password: ${{ secrets.XPKG_ACCESS_TOKEN }}
 
       - name: Publish Artifacts
+        if: env.XPKG_ACCESS_ID != ''
         run: |
           make publish BRANCH_NAME=${GITHUB_REF##*/}
         env:
@@ -183,6 +185,7 @@ jobs:
 
       - name: Login to Upbound Marketplace
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        if: env.XPKG_ACCESS_ID != ''
         with:
           registry: xpkg.upbound.io/upbound
           username: ${{ secrets.XPKG_ACCESS_ID }}
