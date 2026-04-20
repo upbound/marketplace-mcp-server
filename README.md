@@ -19,61 +19,73 @@ Built using the [mcp-go](https://github.com/mark3labs/mcp-go) framework for robu
 
 ## Installation
 
-### Using pre-existing artifacts for local agents
+### Quick start (recommended): run once as a long-lived HTTP server
 
-Steps:
-1. Login using `up`
-```
-up login
-```
-2. Start the marketplace-mcp-server making sure to reference your `up` config
-   1. Note the location for your `up` config is generally located under $HOME/.up.
-   2. The below command will mount your up config into the docker container running the mcp server so that it can reuse your identity when interacting with the Upbound Marketplace.
-```
-docker run --name mcp-marketplace --rm -i -d -p 8765:8765 -v {{REPLACE WITH THE DIRECTORY FOR up}}/.up:/mcp/.up:ro xpkg.upbound.io/upbound/marketplace-mcp-server-http:v0.1.0
-``` 
+This is the supported pattern for all MCP clients that can talk to an HTTP
+endpoint (Cursor, Claude Code, Cline, Continue, Zed, etc.). The server runs
+detached in a single container; any MCP client connects to it over HTTP. No
+container is started or stopped per MCP session, so there is nothing that
+can leave a broken container behind.
 
-3. Update the mcpServers block specifying the location of the marketplace mcp-server
-```json
-{
-  "mcpServers": {
-    "marketplace": {
-      "httpUrl": "http://localhost:8765/mcp"
-    }
-  }
-}
-```
+1. Log in with the UP CLI so the server has a session to reuse:
 
-Start the marketplace-mcp-server-http
+   ```bash
+   up login
+   ```
 
-### Using Docker (Recommended)
+2. Start the server once, detached. Replace the `.up` path with your actual
+   UP CLI config directory (see **UP CLI config location** below).
 
-Build the Docker image locally:
+   ```bash
+   docker run --name mcp-marketplace --rm -d -p 8765:8765 \
+     -v "$HOME/.up:/mcp/.up:ro" \
+     xpkg.upbound.io/upbound/marketplace-mcp-server-http:v0.1.0
+   ```
+
+   Verify it is serving:
+
+   ```bash
+   curl -s -X POST http://localhost:8765/mcp \
+     -H 'Content-Type: application/json' \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+   ```
+
+3. Point your MCP client at it:
+
+   ```json
+   {
+     "mcpServers": {
+       "marketplace": {
+         "httpUrl": "http://localhost:8765/mcp"
+       }
+     }
+   }
+   ```
+
+**UP CLI config location**
+- macOS / Linux: `~/.up` (e.g. `/Users/you/.up` or `/home/you/.up`)
+- Windows: `%USERPROFILE%\.up`
+
+**Upgrading to a new image version**
 
 ```bash
-git clone https://github.com/upbound/marketplace-mcp-server.git
-cd marketplace-mcp-server
-docker build --target stdio -t marketplace-mcp-server:latest .
+docker pull xpkg.upbound.io/upbound/marketplace-mcp-server-http:<new-tag>
+docker rm -f mcp-marketplace
+docker run --name mcp-marketplace --rm -d -p 8765:8765 \
+  -v "$HOME/.up:/mcp/.up:ro" \
+  xpkg.upbound.io/upbound/marketplace-mcp-server-http:<new-tag>
 ```
 
-**Note**: You must have the UP CLI installed and authenticated for the server to access marketplace resources. Run `up login` before using the MCP server.
+### Alternative: stdio transport (for clients without HTTP support)
 
-### Building from Source
-
-```bash
-git clone https://github.com/upbound/marketplace-mcp-server.git
-cd marketplace-mcp-server
-go build ./cmd/mcp-server
-```
-
-## Usage with AI Agents
-
-### Claude Desktop
-
-Add the following to your Claude Desktop configuration file:
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
+Some MCP clients (including older Claude Desktop builds) only support stdio
+transport and launch the server as a subprocess per session. In that case use
+the stdio image — but **do not pass `--name`**. A fixed container name can
+only ever be held by one container at a time, so if a previous session's
+container is still alive (client crash, lost stdio, `--rm` not firing) every
+new session will fail with
+`Conflict. The container name "/mcp-marketplace" is already in use`.
+Let Docker generate a unique name per session instead:
 
 ```json
 {
@@ -81,47 +93,37 @@ Add the following to your Claude Desktop configuration file:
     "marketplace": {
       "command": "docker",
       "args": [
-        "run",
-        "--name", "mcp-marketplace",
-        "--rm",
-        "-i",
+        "run", "--rm", "-i",
         "-v", "/Users/your-username/.up:/mcp/.up:ro",
-        "marketplace-mcp-server:latest"
+        "xpkg.upbound.io/upbound/marketplace-mcp-server:v0.1.0"
       ]
     }
   }
 }
 ```
 
-**Important**: Replace `/Users/your-username/.up` with your actual UP CLI config directory path:
-- **macOS/Linux**: `~/.up` (typically `/Users/username/.up` or `/home/username/.up`)
-- **Windows**: `%USERPROFILE%\.up`
+Replace `/Users/your-username/.up` with your actual UP CLI config directory.
 
-### Other MCP-Compatible Agents
-
-For agents that support MCP, configure them to connect to the server using stdio transport:
+### Building from source
 
 ```bash
-# Using the built binary
-./mcp-server
-
-# Using Docker
-docker run -i --rm -v ~/.up:/mcp/.up:ro marketplace-mcp-server:latest
+git clone https://github.com/upbound/marketplace-mcp-server.git
+cd marketplace-mcp-server
+go build ./cmd/mcp-server   # stdio binary
+go build ./cmd/mcp-http     # HTTP binary
 ```
 
-### HTTP API Interface
-
-The server also supports HTTP transport for integration with web applications and REST clients:
+Or build images locally:
 
 ```bash
-# Start HTTP server locally
-./mcp-http
-
-# Or using Docker
-docker run --rm -p 8765:8765 -v ~/.up:/mcp/.up:ro marketplace-mcp-server-http:latest
+docker build --target stdio -t marketplace-mcp-server:latest .
+docker build --target http  -t marketplace-mcp-server-http:latest .
 ```
 
-The HTTP server provides a JSON-RPC 2.0 API at `http://localhost:8765/mcp`. Example usage:
+## HTTP API reference
+
+The HTTP transport serves JSON-RPC 2.0 at `http://localhost:8765/mcp` in
+stateless mode (no `initialize` handshake required). Example calls:
 
 ```bash
 # List available tools
@@ -135,7 +137,34 @@ curl -X POST http://localhost:8765/mcp \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "search_packages", "arguments": {"query": "aws", "size": 5}}}'
 ```
 
-The HTTP interface operates in stateless mode, so no session initialization is required.
+## Troubleshooting
+
+### `Conflict. The container name "/mcp-marketplace" is already in use`
+
+This comes from using `--name mcp-marketplace` in a stdio MCP client config.
+`--rm` only fires on a clean exit; if the client crashes or is force-quit,
+the container lingers and the next session can never reuse the name.
+
+**Fix**: follow the **Quick start** above (HTTP, one long-lived container),
+or if you must use stdio, remove `--name` from your MCP client config and
+let Docker assign a unique name per session.
+
+If you're already stuck, remove the lingering container once and restart
+your MCP client:
+
+```bash
+docker rm -f mcp-marketplace
+```
+
+### `no authentication token loaded` / 401 responses from the marketplace
+
+The server reads your session from the UP CLI config mounted at
+`/mcp/.up/config.json`. Make sure:
+
+- `up login` has been run on the host and the session hasn't expired
+- the `-v "$HOME/.up:/mcp/.up:ro"` mount points at the same directory
+- if you switched `up` profiles while the server was running, call the
+  `reload_auth` tool from your MCP client (no container restart required)
 
 ## Available Tools
 
@@ -264,7 +293,7 @@ Get package version resources for a supplied repository name.
   "arguments": {
     "account": "upbound",
     "repository_name": "provider-aws-s3",
-    "version": "v1.23.1 
+    "version": "v1.23.1"
   }
 }
 ```
@@ -321,7 +350,7 @@ Get package version resources for a supplied group, kind and version.
 }
 ```
 
-### 8. get_package_version_examples
+### 9. get_package_version_examples
 
 Get package version examples for a supplied group, kind and version.
 
@@ -335,7 +364,7 @@ Get package version examples for a supplied group, kind and version.
 **Example:**
 ```json
 {
-  "name": "get_package_version_groupkind_resources",
+  "name": "get_package_version_examples",
   "arguments": {
     "account": "upbound",
     "repository_name": "provider-aws-s3",
