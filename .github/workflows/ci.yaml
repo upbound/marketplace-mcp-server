@@ -156,7 +156,7 @@ jobs:
       - name: Publish Artifacts
         if: env.XPKG_ACCESS_ID != ''
         run: |
-          make publish BRANCH_NAME=${GITHUB_REF##*/}
+          make publish-multiarch VERSION=${GITHUB_REF##*/}
         env:
           XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
           XPKG_TOKEN: ${{ secrets.XPKG_TOKEN }}

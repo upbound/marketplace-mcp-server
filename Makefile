@@ -118,6 +118,20 @@ docker-build-http:
 
 docker-build: docker-build-stdio docker-build-http
 
+# Multi-arch publish targets (for release builds)
+publish-docker-stdio-multiarch:
+	docker buildx build --target stdio \
+		--platform linux/amd64,linux/arm64 \
+		--push \
+		-t $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION) .
+
+publish-docker-http-multiarch:
+	docker buildx build --target http \
+		--platform linux/amd64,linux/arm64 \
+		--push \
+		-t $(REGISTRY_ORG)/$(DOCKER_IMAGE)-http:$(VERSION) .
+
+# Single-arch publish targets (backward compatibility)
 publish-docker-stdio: docker-build-stdio
 	@docker tag $(DOCKER_IMAGE):latest $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION)
 	@docker push $(REGISTRY_ORG)/$(DOCKER_IMAGE):$(VERSION)
@@ -127,6 +141,9 @@ publish-docker-http: docker-build-http
 	@docker push $(REGISTRY_ORG)/$(DOCKER_IMAGE)-http:$(VERSION)
 
 publish: publish-docker-stdio publish-docker-http
+
+# Multi-arch publish (for release builds)
+publish-multiarch: publish-docker-stdio-multiarch publish-docker-http-multiarch
 
 # Run Docker containers
 docker-run-stdio:
