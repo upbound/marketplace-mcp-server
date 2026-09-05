@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/pkg/errors"
@@ -332,7 +333,15 @@ func formatSearchResults(result *marketplace.SearchResponse) string {
 		return "No search results"
 	}
 
-	output := fmt.Sprintf("Search Results (Total: %d)\n", result.Total)
+	if len(result.Packages) == 0 {
+		return "Search Results (0 matches)\n" +
+			"=====================================\n\n" +
+			"No packages matched the search. Note that package_type must be one of " +
+			"Provider, Configuration, Function or Addon, tier one of official, partner " +
+			"or community, and that all filters are combined with AND."
+	}
+
+	output := fmt.Sprintf("Search Results (%d matches, showing %d)\n", result.Count, len(result.Packages))
 	output += "=====================================\n\n"
 
 	for i, pkg := range result.Packages {
@@ -341,21 +350,34 @@ func formatSearchResults(result *marketplace.SearchResponse) string {
 			output += fmt.Sprintf("   Name: %s\n", pkg.Name)
 		}
 		if pkg.Description != "" {
-			output += fmt.Sprintf("   Description: %s\n", pkg.Description)
+			output += fmt.Sprintf("   Description: %s\n", strings.TrimSpace(pkg.Description))
 		}
 		if pkg.Version != "" {
 			output += fmt.Sprintf("   Version: %s\n", pkg.Version)
 		}
-		if pkg.Type != "" {
-			output += fmt.Sprintf("   Type: %s\n", pkg.Type)
+		if pkg.PackageType != "" {
+			output += fmt.Sprintf("   Type: %s\n", pkg.PackageType)
 		}
 		if pkg.Tier != "" {
 			output += fmt.Sprintf("   Tier: %s\n", pkg.Tier)
 		}
-		if len(pkg.Tags) > 0 {
-			output += fmt.Sprintf("   Tags: %v\n", pkg.Tags)
+		if pkg.FamilyRepoKey != "" {
+			output += fmt.Sprintf("   Family: %s\n", pkg.FamilyRepoKey)
+		}
+		if pkg.PkgDigest != "" {
+			output += fmt.Sprintf("   Digest: %s\n", pkg.PkgDigest)
+		}
+		if pkg.DownloadCount > 0 {
+			output += fmt.Sprintf("   Downloads: %d\n", pkg.DownloadCount)
+		}
+		if !pkg.UpdatedAt.IsZero() {
+			output += fmt.Sprintf("   Updated: %s\n", pkg.UpdatedAt.Format("2006-01-02 15:04:05"))
 		}
 		output += "\n"
+	}
+
+	if result.Count > len(result.Packages) {
+		output += fmt.Sprintf("%d more matches are available; request the next page or a larger size (max 500).\n", result.Count-len(result.Packages))
 	}
 
 	return output
@@ -367,57 +389,56 @@ func formatPackageMetadata(metadata *marketplace.PackageMetadata) string {
 		return "No package metadata"
 	}
 
-	output := fmt.Sprintf("Package: %s/%s\n", metadata.Account, metadata.Repository)
+	output := fmt.Sprintf("Package: %s\n", metadata.RepoKey)
 	output += "=====================================\n\n"
 
-	if metadata.Name != "" {
-		output += fmt.Sprintf("Name: %s\n", metadata.Name)
-	}
-	if metadata.Description != "" {
-		output += fmt.Sprintf("Description: %s\n", metadata.Description)
-	}
-	if metadata.Version != "" {
-		output += fmt.Sprintf("Version: %s\n", metadata.Version)
-	}
 	if metadata.Type != "" {
 		output += fmt.Sprintf("Type: %s\n", metadata.Type)
 	}
 	if metadata.Tier != "" {
 		output += fmt.Sprintf("Tier: %s\n", metadata.Tier)
 	}
-	if len(metadata.Tags) > 0 {
-		output += fmt.Sprintf("Tags: %v\n", metadata.Tags)
+	output += fmt.Sprintf("Public: %t\n", metadata.Public)
+	if metadata.CurrentVersion != "" {
+		output += fmt.Sprintf("Current Version: %s\n", metadata.CurrentVersion)
 	}
-	if !metadata.CreatedAt.IsZero() {
-		output += fmt.Sprintf("Created: %s\n", metadata.CreatedAt.Format("2006-01-02 15:04:05"))
+	if metadata.FamilyRepoKey != "" {
+		output += fmt.Sprintf("Family: %s\n", metadata.FamilyRepoKey)
 	}
-	if !metadata.UpdatedAt.IsZero() {
-		output += fmt.Sprintf("Updated: %s\n", metadata.UpdatedAt.Format("2006-01-02 15:04:05"))
+	if metadata.Digest != "" {
+		output += fmt.Sprintf("Digest: %s\n", metadata.Digest)
 	}
-	if metadata.Downloads > 0 {
-		output += fmt.Sprintf("Downloads: %d\n", metadata.Downloads)
+	if metadata.PublishedAt != "" {
+		output += fmt.Sprintf("Published: %s\n", metadata.PublishedAt)
+	}
+	if metadata.EndOfSupport != "" {
+		output += fmt.Sprintf("End of Support: %s\n", metadata.EndOfSupport)
+	}
+	if metadata.EndOfLife != "" {
+		output += fmt.Sprintf("End of Life: %s\n", metadata.EndOfLife)
+	}
+	if metadata.Languages != "" {
+		output += fmt.Sprintf("Languages: %s\n", metadata.Languages)
 	}
 
-	// Add CRDs information if available
-	if len(metadata.CRDs) > 0 {
-		output += "\nCustom Resource Definitions (CRDs):\n"
+	if len(metadata.Versions) > 0 {
+		output += fmt.Sprintf("\nVersions (%d):\n", len(metadata.Versions))
 		output += "-----------------------------------\n"
-		for i, crd := range metadata.CRDs {
-			output += fmt.Sprintf("%d. %s\n", i+1, crd.Name)
-			if crd.Group != "" {
-				output += fmt.Sprintf("   Group: %s\n", crd.Group)
-			}
-			if crd.Version != "" {
-				output += fmt.Sprintf("   Version: %s\n", crd.Version)
-			}
-			if crd.Kind != "" {
-				output += fmt.Sprintf("   Kind: %s\n", crd.Kind)
-			}
-			if crd.Description != "" {
-				output += fmt.Sprintf("   Description: %s\n", crd.Description)
+		for _, v := range metadata.Versions {
+			output += fmt.Sprintf("- %s", v.Version)
+			if v.Digest != "" {
+				output += fmt.Sprintf(" (%s)", v.Digest)
 			}
 			output += "\n"
 		}
+	}
+
+	if metadata.RelatedRepository != nil && metadata.RelatedRepository.RepoKey != "" {
+		output += fmt.Sprintf("\nRelated Repository: %s", metadata.RelatedRepository.RepoKey)
+		if metadata.RelatedRepository.SubscriptionTier != "" {
+			output += fmt.Sprintf(" (subscription tier: %s)", metadata.RelatedRepository.SubscriptionTier)
+		}
+		output += "\n"
 	}
 
 	return output

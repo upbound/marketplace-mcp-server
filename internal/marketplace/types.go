@@ -16,7 +16,10 @@
 
 package marketplace
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // SearchParams represents search parameters for package search.
 type SearchParams struct {
@@ -41,60 +44,95 @@ type RepositoryParams struct {
 	UseV1  bool
 }
 
-// SearchResponse represents the response from search endpoints.
+// SearchResponse represents the response from search endpoints. Both the v1
+// and the v2 search API report the number of matches as "count".
 type SearchResponse struct {
 	Packages []Package `json:"packages,omitempty"`
-	Total    int       `json:"total,omitempty"`
+	Count    int       `json:"count,omitempty"`
 	Page     int       `json:"page,omitempty"`
 	Size     int       `json:"size,omitempty"`
 }
 
 // Package represents a package in search results.
 type Package struct {
-	Account     string         `json:"account"`
-	Repository  string         `json:"repository"`
-	Name        string         `json:"name"`
-	Version     string         `json:"version,omitempty"`
-	Description string         `json:"description,omitempty"`
-	Type        string         `json:"type,omitempty"`
-	Public      bool           `json:"public"`
-	Tier        string         `json:"tier,omitempty"`
-	Stars       int            `json:"stars,omitempty"`
-	Downloads   int            `json:"downloads,omitempty"`
-	CreatedAt   time.Time      `json:"createdAt,omitempty"`
-	UpdatedAt   time.Time      `json:"updatedAt,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
-	Keywords    []string       `json:"keywords,omitempty"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
+	Account       string              `json:"account"`
+	Repository    string              `json:"repository"`
+	RepoKey       string              `json:"repoKey,omitempty"`
+	Name          string              `json:"name"`
+	Version       string              `json:"version,omitempty"`
+	Description   string              `json:"description,omitempty"`
+	PackageType   string              `json:"packageType,omitempty"`
+	Public        bool                `json:"public"`
+	Tier          string              `json:"tier,omitempty"`
+	PkgDigest     string              `json:"pkgDigest,omitempty"`
+	FamilyRepoKey string              `json:"familyRepoKey,omitempty"`
+	DownloadCount int                 `json:"downloadCount,omitempty"`
+	IconURL       string              `json:"iconURL,omitempty"`
+	CreatedAt     time.Time           `json:"createdAt,omitempty"`
+	UpdatedAt     time.Time           `json:"updatedAt,omitempty"`
+	Annotations   map[string][]string `json:"annotations,omitempty"`
+	Highlights    map[string][]string `json:"highlight,omitempty"`
 }
 
-// PackageMetadata represents detailed package metadata.
+// PackageMetadata represents detailed package metadata. The versioned
+// endpoint returns a subset of these fields plus the version specific ones.
 type PackageMetadata struct {
-	Account       string         `json:"account"`
-	Repository    string         `json:"repository"`
-	Name          string         `json:"name"`
-	Version       string         `json:"version,omitempty"`
-	Description   string         `json:"description,omitempty"`
-	Type          string         `json:"type,omitempty"`
-	Public        bool           `json:"public"`
-	Tier          string         `json:"tier,omitempty"`
-	Stars         int            `json:"stars,omitempty"`
-	Downloads     int            `json:"downloads,omitempty"`
-	CreatedAt     time.Time      `json:"createdAt,omitempty"`
-	UpdatedAt     time.Time      `json:"updatedAt,omitempty"`
-	Tags          []string       `json:"tags,omitempty"`
-	Keywords      []string       `json:"keywords,omitempty"`
-	Versions      []string       `json:"versions,omitempty"`
-	LatestVersion string         `json:"latestVersion,omitempty"`
-	Documentation string         `json:"documentation,omitempty"`
-	Homepage      string         `json:"homepage,omitempty"`
-	License       string         `json:"license,omitempty"`
-	Dependencies  []Dependency   `json:"dependencies,omitempty"`
-	CRDs          []CRD          `json:"crds,omitempty"`
-	Examples      []Example      `json:"examples,omitempty"`
-	Compositions  []Composition  `json:"compositions,omitempty"`
-	Functions     []Function     `json:"functions,omitempty"`
-	Metadata      map[string]any `json:"metadata,omitempty"`
+	RepoKey           string             `json:"repoKey"`
+	Type              string             `json:"type,omitempty"`
+	Tier              string             `json:"tier,omitempty"`
+	Public            bool               `json:"public"`
+	CurrentVersion    string             `json:"currentVersion,omitempty"`
+	FamilyRepoKey     string             `json:"familyRepoKey,omitempty"`
+	Versions          []PackageVersion   `json:"versions,omitempty"`
+	RelatedRepository *RelatedRepository `json:"relatedRepository,omitempty"`
+
+	// Fields only returned when a specific version is requested.
+	Digest         string `json:"digest,omitempty"`
+	PublishedAt    string `json:"publishedAt,omitempty"`
+	EndOfSupport   string `json:"endOfSupport,omitempty"`
+	EndOfLife      string `json:"endOfLife,omitempty"`
+	HasSignature   bool   `json:"hasSignature,omitempty"`
+	HasAttestation bool   `json:"hasAttestation,omitempty"`
+	Languages      string `json:"languages,omitempty"`
+}
+
+// RelatedRepository represents a repository related to the requested one, for
+// example the long term support variant of a package.
+type RelatedRepository struct {
+	RepoKey          string           `json:"repoKey"`
+	Public           bool             `json:"public"`
+	SubscriptionTier string           `json:"subscriptionTier,omitempty"`
+	Versions         []PackageVersion `json:"versions,omitempty"`
+}
+
+// PackageVersion represents a published version of a package. The v2
+// packageMetadata endpoint returns objects while v1 returns plain version
+// strings, so both encodings are accepted.
+type PackageVersion struct {
+	Version             string    `json:"display_versions,omitempty"` //nolint:tagliatelle // This is marshalling an external API.
+	Digest              string    `json:"digest,omitempty"`
+	FreeVersion         string    `json:"free_version,omitempty"`         //nolint:tagliatelle // This is marshalling an external API.
+	SubscriptionVersion string    `json:"subscription_version,omitempty"` //nolint:tagliatelle // This is marshalling an external API.
+	UpdatedAt           time.Time `json:"updated_at,omitempty"`           //nolint:tagliatelle // This is marshalling an external API.
+}
+
+// UnmarshalJSON decodes a package version from either a version string (v1) or
+// a version object (v2).
+func (v *PackageVersion) UnmarshalJSON(data []byte) error {
+	var version string
+	if err := json.Unmarshal(data, &version); err == nil {
+		*v = PackageVersion{Version: version}
+		return nil
+	}
+
+	type packageVersion PackageVersion // Avoid recursing into this method.
+	var decoded packageVersion
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*v = PackageVersion(decoded)
+
+	return nil
 }
 
 // Dependency represents a package dependency.
