@@ -89,29 +89,29 @@ func (s *Server) registerTools() {
 	// Search packages tool
 	s.mcpServer.AddTool(mcp.Tool{
 		Name:        "search_packages",
-		Description: "Search for packages in the Upbound Marketplace",
+		Description: "Search for packages in the Upbound Marketplace. All provided filters are combined with AND.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]any{
 				"query": map[string]any{
 					"type":        "string",
-					"description": "Search query for packages",
+					"description": "Free text search query, matched against package name, repository and description (e.g. \"provider-aws-s3\")",
 				},
 				"family": map[string]any{
 					"type":        "string",
-					"description": "Family repository key to filter by",
+					"description": "Family repository key to filter by (e.g. \"upbound/provider-family-aws\")",
 				},
 				"package_type": map[string]any{
 					"type":        "string",
-					"description": "Type of package (provider, configuration, function)",
+					"description": "Type of package: Provider, Configuration, Function or Addon (case insensitive)",
 				},
 				"account_name": map[string]any{
 					"type":        "string",
-					"description": "Account/organization name to filter by",
+					"description": "Account/organization name to filter by (e.g. \"upbound\")",
 				},
 				"tier": map[string]any{
 					"type":        "string",
-					"description": "Package tier (official, community, etc.)",
+					"description": "Package tier: official, partner or community (case insensitive)",
 				},
 				"public": map[string]any{
 					"type":        "boolean",
@@ -119,7 +119,7 @@ func (s *Server) registerTools() {
 				},
 				"size": map[string]any{
 					"type":        "integer",
-					"description": "Number of results to return (max 500)",
+					"description": "Number of results to return, capped at 500",
 					"default":     20,
 				},
 				"page": map[string]any{

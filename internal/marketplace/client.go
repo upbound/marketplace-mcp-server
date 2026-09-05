@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -30,7 +31,28 @@ import (
 
 const (
 	userAgent = "marketplace-mcp-server/1.0"
+
+	// maxSearchSize is the largest page size the search API accepts.
+	maxSearchSize = 500
 )
+
+// NormalizePackageType returns the package type in the casing the marketplace
+// API expects, which rejects any other casing with a 400. Unknown values are
+// left untouched so that the API can report them.
+func NormalizePackageType(t string) string {
+	switch strings.ToLower(t) {
+	case "provider":
+		return "Provider"
+	case "configuration":
+		return "Configuration"
+	case "function":
+		return "Function"
+	case "addon":
+		return "Addon"
+	default:
+		return t
+	}
+}
 
 // Client represents a marketplace API client.
 type Client struct {
@@ -77,8 +99,66 @@ func (c *Client) SetBaseURL(baseURL string) {
 	c.BaseURL = baseURL
 }
 
+// v2SearchFilter builds the AIP-160 filter expression for the v2 search API.
+// The API only accepts a single filter parameter, so every requested facet is
+// ANDed into one expression.
+func v2SearchFilter(params SearchParams) string {
+	var clauses []string
+	if params.Query != "" {
+		clauses = append(clauses, fmt.Sprintf("query = '%s'", escapeFilterValue(params.Query)))
+	}
+	if params.Family != "" {
+		clauses = append(clauses, fmt.Sprintf("family = '%s'", escapeFilterValue(params.Family)))
+	}
+	if params.PackageType != "" {
+		clauses = append(clauses, fmt.Sprintf("packageType = '%s'", escapeFilterValue(NormalizePackageType(params.PackageType))))
+	}
+	if params.AccountName != "" {
+		// The filter field is "account"; "accountName" is accepted by the API
+		// but silently matches nothing.
+		clauses = append(clauses, fmt.Sprintf("account = '%s'", escapeFilterValue(params.AccountName)))
+	}
+	if params.Tier != "" {
+		clauses = append(clauses, fmt.Sprintf("tier = '%s'", escapeFilterValue(strings.ToLower(params.Tier))))
+	}
+	if params.Public != nil {
+		clauses = append(clauses, fmt.Sprintf("public = %t", *params.Public))
+	}
+
+	return strings.Join(clauses, " AND ")
+}
+
+// setV1SearchParams sets the individual query parameters used by the v1 search
+// API.
+func setV1SearchParams(q url.Values, params SearchParams) {
+	if params.Query != "" {
+		q.Set("query", params.Query)
+	}
+	if params.Family != "" {
+		q.Set("family", params.Family)
+	}
+	if params.PackageType != "" {
+		q.Set("packageType", NormalizePackageType(params.PackageType))
+	}
+	if params.AccountName != "" {
+		q.Set("accountName", params.AccountName)
+	}
+	if params.Tier != "" {
+		q.Set("tier", strings.ToLower(params.Tier))
+	}
+	if params.Public != nil {
+		q.Set("public", fmt.Sprintf("%t", *params.Public))
+	}
+}
+
+// escapeFilterValue escapes a value for use inside a single quoted filter
+// literal.
+func escapeFilterValue(v string) string {
+	return strings.NewReplacer(`\`, `\\`, `'`, `\'`).Replace(v)
+}
+
 // SearchPackages searches for packages using v1 or v2 API.
-func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*SearchResponse, error) { //nolint:gocognit // This method is unfortunately above our complexity level. Be wary of increasing its complexity.
+func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*SearchResponse, error) {
 	endpoint := "/v2/search"
 	if params.UseV1 {
 		endpoint = "/v1/search"
@@ -90,50 +170,19 @@ func (c *Client) SearchPackages(ctx context.Context, params SearchParams) (*Sear
 	}
 
 	q := u.Query()
-	if params.Query != "" {
-		if params.UseV1 {
-			q.Set("query", params.Query)
-		} else {
-			// V2 uses filter parameter with AIP-160 format
-			q.Set("filter", fmt.Sprintf("query = '%s'", params.Query))
-		}
-	}
-	if params.Family != "" {
-		if params.UseV1 {
-			q.Set("family", params.Family)
-		} else {
-			q.Set("filter", fmt.Sprintf("family = '%s'", params.Family))
-		}
-	}
-	if params.PackageType != "" {
-		if params.UseV1 {
-			q.Set("packageType", params.PackageType)
-		} else {
-			q.Set("filter", fmt.Sprintf("packageType = '%s'", params.PackageType))
-		}
-	}
-	if params.AccountName != "" {
-		if params.UseV1 {
-			q.Set("accountName", params.AccountName)
-		} else {
-			q.Set("filter", fmt.Sprintf("accountName = '%s'", params.AccountName))
-		}
+	if params.UseV1 {
+		setV1SearchParams(q, params)
+	} else if filter := v2SearchFilter(params); filter != "" {
+		// V2 expects a single filter parameter in AIP-160 format; repeating
+		// the parameter is rejected by the API, so all clauses are ANDed
+		// together into one expression.
+		q.Set("filter", filter)
 	}
 	if params.Size > 0 {
-		q.Set("size", fmt.Sprintf("%d", params.Size))
+		q.Set("size", fmt.Sprintf("%d", min(params.Size, maxSearchSize)))
 	}
 	if params.Page > 0 {
 		q.Set("page", fmt.Sprintf("%d", params.Page))
-	}
-	if params.Public != nil {
-		q.Set("public", fmt.Sprintf("%t", *params.Public))
-	}
-	if params.Tier != "" {
-		if params.UseV1 {
-			q.Set("tier", params.Tier)
-		} else {
-			q.Set("filter", fmt.Sprintf("tier = '%s'", params.Tier))
-		}
 	}
 	if params.Starred != nil && *params.Starred {
 		q.Set("starred", "true")
